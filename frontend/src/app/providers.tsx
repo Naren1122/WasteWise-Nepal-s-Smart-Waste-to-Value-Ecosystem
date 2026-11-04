@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useAuth } from '../features/auth/hooks/useAuth';
+import { useAuthStore } from '../shared/stores/auth.store';
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
@@ -18,7 +18,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       })
   );
 
-  const initialize = useAuth((state) => state.initialize);
+  const initialize = useAuthStore((state) => state.initialize);
 
   useEffect(() => {
     initialize();

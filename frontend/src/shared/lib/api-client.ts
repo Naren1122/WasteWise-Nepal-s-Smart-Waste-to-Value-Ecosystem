@@ -26,6 +26,11 @@ class ApiClient {
     return localStorage.getItem('wastewise_tenant_id');
   }
 
+  private getTenantSubdomain(): string | null {
+    if (typeof window === 'undefined') return null;
+    return localStorage.getItem('wastewise_tenant_subdomain');
+  }
+
   public async request<T>(
     endpoint: string,
     options: RequestInit = {}
@@ -33,6 +38,7 @@ class ApiClient {
     const url = `${API_BASE_URL}${endpoint}`;
     const tokens = this.getAuthTokens();
     const tenantId = this.getTenantId();
+    const tenantSubdomain = this.getTenantSubdomain();
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
@@ -47,6 +53,10 @@ class ApiClient {
       headers['X-Tenant-ID'] = tenantId;
     }
 
+    if (tenantSubdomain) {
+      headers['X-Tenant-Subdomain'] = tenantSubdomain;
+    }
+
     const response = await fetch(url, {
       ...options,
       headers,
@@ -55,6 +65,36 @@ class ApiClient {
     const body = await response.json();
 
     if (!response.ok) {
+      // Auto-refresh expired access tokens seamlessly (GEMINI.md Rule 5.2)
+      if (
+        response.status === 401 &&
+        tokens?.refreshToken &&
+        endpoint !== '/auth/refresh' &&
+        endpoint !== '/auth/login'
+      ) {
+        try {
+          const refreshRes = await fetch(`${API_BASE_URL}/auth/refresh`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ refreshToken: tokens.refreshToken }),
+          });
+
+          if (refreshRes.ok) {
+            const refreshBody = (await refreshRes.json()) as ApiResponse<AuthTokens>;
+            if (refreshBody.data) {
+              localStorage.setItem('wastewise_tokens', JSON.stringify(refreshBody.data));
+              headers['Authorization'] = `Bearer ${refreshBody.data.accessToken}`;
+              const retryResponse = await fetch(url, { ...options, headers });
+              if (retryResponse.ok) {
+                return (await retryResponse.json()) as ApiResponse<T>;
+              }
+            }
+          }
+        } catch {
+          // Refresh failed, continue to throw ApiClientError
+        }
+      }
+
       const errorResponse = body as ApiErrorResponse;
       throw new ApiClientError(
         errorResponse.error?.code || 'UNKNOWN_ERROR',

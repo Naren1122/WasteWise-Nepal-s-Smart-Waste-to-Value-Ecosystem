@@ -1,10 +1,10 @@
 import { PropertyRepository } from './properties.repository.js';
+import { Role } from '@prisma/client';
 import type {
   IPropertyRepository,
   PropertyDto,
   PropertyFilterParams,
   PropertyWithRelations,
-  Role,
 } from './properties.types.js';
 import {
   CreatePropertyDto,
@@ -199,8 +199,16 @@ export class PropertyService {
       throw new NotFoundError('Property', propertyId);
     }
 
+    if (
+      currentUser.role !== Role.MUNICIPAL_ADMIN &&
+      currentUser.role !== Role.SUPER_ADMIN &&
+      currentUser.role !== Role.WARD_OFFICER
+    ) {
+      throw new ForbiddenError('Only municipal administrators or ward officers can update property status');
+    }
+
     // Ward officers can only verify properties in their own ward
-    if (currentUser.role === 'WARD_OFFICER' && currentUser.wardId && existing.wardId !== currentUser.wardId) {
+    if (currentUser.role === Role.WARD_OFFICER && currentUser.wardId && existing.wardId !== currentUser.wardId) {
       throw new ForbiddenError('You can only verify properties in your assigned ward');
     }
 

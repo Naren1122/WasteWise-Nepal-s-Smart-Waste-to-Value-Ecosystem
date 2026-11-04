@@ -5,6 +5,9 @@ import { env } from './shared/config/env.js';
 import { authRoutes } from './features/auth/auth.routes.js';
 import { propertyRoutes } from './features/properties/properties.routes.js';
 import { wardRoutes } from './features/wards/wards.routes.js';
+import { plansRoutes } from './features/plans/plans.routes.js';
+import { scheduleRoutes } from './features/schedules/schedules.routes.js';
+import { bulkyWasteRoutes } from './features/bulky-waste/bulky-waste.routes.js';
 import { errorHandlerMiddleware } from './shared/errors/error-handler.middleware.js';
 import { NotFoundError } from './shared/errors/app-error.js';
 
@@ -37,6 +40,9 @@ export const createApp = (): Application => {
   apiRouter.use(authRoutes);
   apiRouter.use(propertyRoutes);
   apiRouter.use(wardRoutes);
+  apiRouter.use(plansRoutes);
+  apiRouter.use(scheduleRoutes);
+  apiRouter.use(bulkyWasteRoutes);
 
   app.use('/api/v1', apiRouter);
 
@@ -50,4 +56,3 @@ export const createApp = (): Application => {
 
   return app;
 };
-

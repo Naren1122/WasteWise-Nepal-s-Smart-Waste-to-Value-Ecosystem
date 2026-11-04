@@ -2,9 +2,10 @@
 
 import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '../../features/auth/hooks/useAuth';
-import { Navbar } from '../../shared/components/layout/Navbar';
-import { Sidebar } from '../../shared/components/layout/Sidebar';
+import { useAuthStore } from '@/shared/stores/auth.store';
+import { AppSidebar } from '@/shared/components/layout/AppSidebar';
+import { SidebarProvider, SidebarTrigger, SidebarInset } from '@/shared/components/ui/sidebar';
+import { Separator } from '@/shared/components/ui/separator';
 
 export default function DashboardLayout({
   children,
@@ -12,7 +13,7 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading } = useAuthStore();
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -32,13 +33,16 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
-      <Navbar />
-      <div className="flex flex-1">
-        <Sidebar />
-        <main className="flex-1 p-8 overflow-y-auto">{children}</main>
+    <SidebarProvider defaultOpen={true}>
+      <div className="min-h-screen flex w-full bg-slate-50">
+        {/* Reusable shadcn/ui Sidebar */}
+        <AppSidebar />
+
+        {/* Dynamic Main Workspace Content */}
+        <SidebarInset className="flex flex-col flex-1 min-w-0 bg-slate-50">
+          {children}
+        </SidebarInset>
       </div>
-    </div>
+    </SidebarProvider>
   );
 }
-

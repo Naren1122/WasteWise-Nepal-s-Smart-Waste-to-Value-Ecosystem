@@ -138,8 +138,8 @@ export class WardService {
       contactPhone: ward.contactPhone,
       createdAt: ward.createdAt,
       updatedAt: ward.updatedAt,
-      zoneCount: ward._count.serviceZones,
-      propertyCount: ward._count.properties,
+      zoneCount: ward._count?.serviceZones ?? 0,
+      propertyCount: ward._count?.properties ?? 0,
     };
   }
 
@@ -154,7 +154,7 @@ export class WardService {
       isActive: zone.isActive,
       createdAt: zone.createdAt,
       updatedAt: zone.updatedAt,
-      propertyCount: zone._count.properties,
+      propertyCount: zone._count?.properties ?? 0,
     };
   }
 }

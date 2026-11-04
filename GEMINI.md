@@ -311,3 +311,63 @@ Multi-tenancy is the foundation of WasteWise. Leakage across municipal tenants i
 - **Mocking External APIs**:
   - Always mock third-party external APIs (eSewa, Khalti, Sparrow SMS, S3) in test environments using dedicated mock adapters.
 
+---
+
+## 10. Strict UI/UX Design System & Responsive Rules
+
+This design system is mandatory across all frontend pages and features to guarantee an alluring, enterprise-grade, client-ready aesthetic with 100% component consistency.
+
+### 10.1 Typography & Native Free Font Stack
+- **Font Stack**: Always use native `"Segoe UI", Tahoma, Geneva, Verdana, sans-serif`.
+  - Zero external web font downloads (0 KB network latency, 0 Layout Shift/CLS).
+  - Clear rendering on low-cost government Android devices, iPads, and High-DPI Desktop monitors.
+- **Fluid Font Scale (No Micro-Fonts)**:
+  - Mobile Base (`< 640px`): `15px` (`text-[15px]` / `line-height: 1.5rem`). **Never drop below 15px for body/inputs on mobile**.
+  - Desktop Base (`> 1024px`): `15px–16px` (`text-[16px]`).
+  - Section Headings: `18px` (Mobile) / `22px–24px` (Desktop).
+  - Page Titles: `22px` (Mobile) / `28px–32px` (Desktop).
+  - The absolute smallest text in the entire system is `12px` (strictly for uppercase status badges).
+
+### 10.2 Mandatory Component Standardization (Zero Ad-Hoc UI)
+Never create one-off buttons, raw HTML inputs, or bespoke modals. All components must import from `@/shared/components/ui/` with exact matching height, font, and border radius:
+
+- **Buttons (`Button`)**:
+  - **Height**: Standard `h-10` (40px) on Desktop; `h-12` (48px) full-width on Mobile touch screens (`w-full sm:w-auto`).
+  - **Font**: Fixed `text-[15px]` font-medium (`Segoe UI/Tahoma`).
+  - **Corner Radius**: Fixed `rounded-lg` (8px).
+  - **Color Tokens**:
+    - Primary: `bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm active:scale-[0.98]`
+    - Secondary: `bg-slate-100 hover:bg-slate-200 text-slate-900`
+    - Outline: `border border-slate-300 bg-white text-slate-700 hover:bg-slate-50`
+    - Destructive: `bg-rose-600 hover:bg-rose-700 text-white shadow-sm`
+- **Text Inputs & Dropdowns (`Input` & `Select`)**:
+  - **Height**: Exactly matches Button height (`h-10` / 40px desktop, `h-11` / 44px mobile).
+  - **Font & Text**: Fixed `text-[15px] font-normal text-slate-900 placeholder:text-slate-400`.
+  - **Border & Focus Ring**: `border-slate-300 rounded-lg focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/20`.
+- **Status Badges (`Badge`)**:
+  - Fixed `h-6 px-2.5 text-[12px] font-semibold tracking-wide uppercase rounded-full border inline-flex items-center`.
+  - `ACTIVE`: `bg-emerald-50 text-emerald-700 border-emerald-200`
+  - `PENDING`: `bg-amber-50 text-amber-700 border-amber-200`
+  - `INACTIVE`: `bg-rose-50 text-rose-700 border-rose-200`
+- **Cards (`Card`)**:
+  - Fixed `bg-white border border-slate-200/80 rounded-xl shadow-sm hover:shadow-md transition-shadow`.
+
+### 10.3 Responsive Screen Rules (Mobile, Tablet, Desktop)
+- **Mobile (< 640px)**:
+  - Single-column flow (`grid-cols-1`, `flex-col`).
+  - Minimum touch target for all clickable elements is **44 × 44 px**.
+  - Modals adapt into bottom sliding sheets (`Sheet`).
+  - Tables convert into stacked card views.
+- **Tablet (640px – 1024px)**:
+  - 2-Column layout (`grid-cols-1 sm:grid-cols-2 gap-4`).
+  - Collapsible icon sidebar to maximize screen real estate.
+- **Desktop / Laptop (> 1024px)**:
+  - Multi-column complex dashboard grids (`grid-cols-3` or `grid-cols-4`).
+  - Max container width capped at `max-w-7xl` with `px-6` to `px-8` gutters.
+
+### 10.4 Modern React 19 UI Paradigms
+- Use `useTransition` for smooth non-blocking tab switches and view transitions.
+- Use `useOptimistic` for instant feedback on status changes and item updates.
+- Use `useActionState` for streamlined form actions and server responses.
+
+

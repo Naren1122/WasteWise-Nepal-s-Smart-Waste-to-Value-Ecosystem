@@ -1,74 +1,89 @@
 'use client';
 
 import React from 'react';
-import { useAuth } from '../../features/auth/hooks/useAuth';
-import { Card } from '../../shared/components/ui/card';
-import { Home, CalendarCheck, AlertTriangle, ShieldCheck } from 'lucide-react';
+import Link from 'next/link';
+import { useAuth } from '@/shared/stores/auth.store';
+import { PageHeader } from '@/shared/components/layout/PageHeader';
+import { Button } from '@/shared/components/ui/button';
+import { Badge } from '@/shared/components/ui/badge';
+import { Plus, RefreshCw } from 'lucide-react';
+import { WelcomeBanner } from '@/features/dashboard/components/WelcomeBanner';
+import { KpiMetricsGrid } from '@/features/dashboard/components/KpiMetricsGrid';
+import { ActionHubCards } from '@/features/dashboard/components/ActionHubCards';
+import { LiveFleetStatusCard } from '@/features/dashboard/components/LiveFleetStatusCard';
 
 export default function DashboardOverviewPage() {
   const { user, tenantSubdomain } = useAuth();
 
+  const formatRole = (role?: string) => {
+    switch (role) {
+      case 'SUPER_ADMIN':
+        return 'Super Admin';
+      case 'MUNICIPAL_ADMIN':
+        return 'Municipal Admin';
+      case 'WARD_OFFICER':
+        return 'Ward Officer';
+      case 'DRIVER':
+        return 'Route Driver';
+      case 'CITIZEN':
+      default:
+        return 'Citizen';
+    }
+  };
+
   return (
-    <div className="space-y-6 max-w-6xl">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-          Welcome back, {user?.fullName || 'Citizen'}
-        </h1>
-        <p className="text-sm text-slate-500 mt-1">
-          Active Municipal Jurisdiction: <span className="font-semibold text-emerald-700">{tenantSubdomain?.toUpperCase()}</span>
-        </p>
-      </div>
+    <div className="flex flex-col min-h-screen bg-slate-50">
+      {/* 1. Standardized Responsive Page Header */}
+      <PageHeader
+        title="Dashboard Overview"
+        badge={
+          <Badge variant="active" className="hidden sm:inline-flex ml-1 font-bold">
+            {tenantSubdomain?.toUpperCase() || 'KATHMANDU'}
+          </Badge>
+        }
+        actions={
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={() => window.location.reload()}
+              className="h-10 px-3 sm:px-4 text-[14px] rounded-lg border-slate-300 text-slate-700 hover:bg-slate-50"
+              title="Refresh dashboard"
+            >
+              <RefreshCw className="w-4 h-4" />
+              <span className="hidden sm:inline">Refresh</span>
+            </Button>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="flex items-center gap-4">
-          <div className="p-3 bg-emerald-50 text-emerald-600 rounded-lg">
-            <Home className="w-6 h-6" />
+            <Button asChild variant="primary" className="h-10 px-3 sm:px-4 text-[14px] font-semibold rounded-lg shadow-xs">
+              <Link href="/properties/register" className="inline-flex items-center gap-2">
+                <Plus className="w-4 h-4" />
+                <span className="hidden md:inline">Register New Property</span>
+                <span className="md:hidden">Register</span>
+              </Link>
+            </Button>
           </div>
-          <div>
-            <p className="text-xs text-slate-500 font-medium">Registered Premises</p>
-            <p className="text-xl font-bold text-slate-900">1 Property</p>
-          </div>
-        </Card>
+        }
+      />
 
-        <Card className="flex items-center gap-4">
-          <div className="p-3 bg-blue-50 text-blue-600 rounded-lg">
-            <CalendarCheck className="w-6 h-6" />
-          </div>
-          <div>
-            <p className="text-xs text-slate-500 font-medium">Next Pickup</p>
-            <p className="text-xl font-bold text-slate-900">Tomorrow (Organic)</p>
-          </div>
-        </Card>
+      {/* 2. Main Work Area: Mobile, Tablet & Desktop Responsive Layout */}
+      <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto space-y-6 w-full max-w-7xl mx-auto">
+        {/* Welcome Hero Banner with Node Status */}
+        <WelcomeBanner
+          userName={user?.fullName}
+          tenantSubdomain={tenantSubdomain}
+        />
 
-        <Card className="flex items-center gap-4">
-          <div className="p-3 bg-purple-50 text-purple-600 rounded-lg">
-            <ShieldCheck className="w-6 h-6" />
-          </div>
-          <div>
-            <p className="text-xs text-slate-500 font-medium">Account Role</p>
-            <p className="text-xl font-bold text-slate-900">{user?.role || 'CITIZEN'}</p>
-          </div>
-        </Card>
+        {/* 4 Large Balanced KPI Metric Cards (1 col mobile, 2 col tablet, 4 col desktop) */}
+        <KpiMetricsGrid
+          roleName={formatRole(user?.role)}
+          propertyCount={1}
+        />
 
-        <Card className="flex items-center gap-4">
-          <div className="p-3 bg-amber-50 text-amber-600 rounded-lg">
-            <AlertTriangle className="w-6 h-6" />
-          </div>
-          <div>
-            <p className="text-xs text-slate-500 font-medium">Pending Dues</p>
-            <p className="text-xl font-bold text-emerald-600">NPR 0 (Clear)</p>
-          </div>
-        </Card>
-      </div>
+        {/* Operational Action Hub (Citizen Property Registry & Wards Management) */}
+        <ActionHubCards />
 
-      <Card>
-        <h2 className="text-base font-semibold text-slate-900 mb-2">Phase 1 Status: Core Infrastructure Active</h2>
-        <p className="text-sm text-slate-600 leading-relaxed">
-          The foundational multi-tenant architecture, strict TypeScript data pipeline, and role-based authentication slice are operational.
-          Ready to advance to <strong>Phase 2: Master Data, Wards, Zones & Citizen Property Registry</strong>.
-        </p>
-      </Card>
+        {/* Live Fleet Dispatch & Ward Status (Kathmandu Metro Telemetry) */}
+        <LiveFleetStatusCard />
+      </main>
     </div>
   );
 }
-

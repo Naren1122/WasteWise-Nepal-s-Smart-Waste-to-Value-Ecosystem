@@ -21,7 +21,7 @@ export const Card: React.FC<CardProps> = ({
   return (
     <div
       className={cn(
-        'bg-white rounded-xl border border-slate-200/80 shadow-sm transition-all',
+        'bg-white rounded-xl border border-slate-300 shadow-xs transition-all',
         paddings[padding],
         className
       )}
