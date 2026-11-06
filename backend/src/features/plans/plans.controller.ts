@@ -54,6 +54,13 @@ export class PlansController {
     sendSuccess(res, plan, { message: 'Service plan updated successfully', tenantId: req.tenant.id });
   };
 
+  public deletePlan = async (req: Request, res: Response): Promise<void> => {
+    if (!req.tenant) throw new BadRequestError('Tenant context required');
+    const { id } = IdParamSchema.parse(req.params);
+    await this.service.deletePlan(req.tenant.id, id);
+    sendSuccess(res, { deleted: true }, { message: 'Service plan deleted successfully', tenantId: req.tenant.id });
+  };
+
   public createSubscription = async (req: Request, res: Response): Promise<void> => {
     if (!req.tenant) throw new BadRequestError('Tenant context required');
     if (!req.user) throw new UnauthorizedError();

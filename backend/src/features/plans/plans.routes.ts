@@ -36,6 +36,12 @@ router.patch(
   asyncHandler(controller.updatePlan)
 );
 
+router.delete(
+  '/plans/:id',
+  requireRole([Role.MUNICIPAL_ADMIN, Role.SUPER_ADMIN]),
+  asyncHandler(controller.deletePlan)
+);
+
 // 2. Subscriptions Management
 router.post(
   '/subscriptions',

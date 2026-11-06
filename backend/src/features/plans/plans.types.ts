@@ -116,5 +116,6 @@ export interface IPlansRepository {
   findSubscriptionsByProperty(tenantId: string, propertyId: string): Promise<SubscriptionWithRelations[]>;
   findActiveSubscription(tenantId: string, propertyId: string): Promise<SubscriptionWithRelations | null>;
   cancelSubscription(tenantId: string, id: string): Promise<SubscriptionWithRelations>;
+  deletePlan(tenantId: string, id: string): Promise<void>;
 }
 

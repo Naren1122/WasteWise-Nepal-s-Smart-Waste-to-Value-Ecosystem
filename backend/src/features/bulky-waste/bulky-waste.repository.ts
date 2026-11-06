@@ -63,7 +63,7 @@ export class BulkyWasteRepository implements IBulkyWasteRepository {
     };
 
     const page = filter.page ?? 1;
-    const pageSize = filter.pageSize ?? 20;
+    const pageSize = filter.pageSize ?? 8;
 
     const [requests, totalCount] = await Promise.all([
       prisma.bulkyWasteRequest.findMany({

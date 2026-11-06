@@ -46,6 +46,7 @@ describe('SchedulesService', () => {
     mockRepo = {
       createSchedule: vi.fn(),
       findScheduleById: vi.fn(),
+      findSchedules: vi.fn(),
       findSchedulesByWard: vi.fn(),
       findAllActiveSchedules: vi.fn(),
       updateSchedule: vi.fn(),
@@ -56,12 +57,17 @@ describe('SchedulesService', () => {
     };
 
     mockWardRepo = {
-      createWard: vi.fn(),
+      findWardsByTenant: vi.fn(),
       findWardById: vi.fn(),
       findWardByNumber: vi.fn(),
-      findAllWards: vi.fn(),
+      createWard: vi.fn(),
       updateWard: vi.fn(),
-      deleteWard: vi.fn(),
+      wardExists: vi.fn(),
+      findZonesByWard: vi.fn(),
+      findZoneById: vi.fn(),
+      findZoneByCode: vi.fn(),
+      createZone: vi.fn(),
+      updateZone: vi.fn(),
     };
 
     mockPropertyRepo = {
@@ -160,5 +166,14 @@ describe('SchedulesService', () => {
 
     expect(result.generatedCount).toBe(0);
     expect(mockRepo.createBatchPickups).not.toHaveBeenCalled();
+  });
+
+  it('should list all schedules for tenant or filtered by wardId', async () => {
+    vi.mocked(mockRepo.findSchedules).mockResolvedValue([mockSchedule]);
+
+    const result = await service.listSchedules(tenantId);
+    expect(result).toHaveLength(1);
+    expect(result[0]?.dayName).toBe('Sunday');
+    expect(mockRepo.findSchedules).toHaveBeenCalledWith(tenantId, undefined);
   });
 });

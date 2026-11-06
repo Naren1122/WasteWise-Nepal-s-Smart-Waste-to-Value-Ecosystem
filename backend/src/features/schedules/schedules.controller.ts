@@ -20,6 +20,13 @@ export class SchedulesController {
     sendSuccess(res, schedule, { status: 201, message: 'Collection schedule created successfully', tenantId: req.tenant.id });
   };
 
+  public listSchedules = async (req: Request, res: Response): Promise<void> => {
+    if (!req.tenant) throw new BadRequestError('Tenant context required');
+    const wardId = typeof req.query.wardId === 'string' && req.query.wardId !== 'ALL' ? req.query.wardId : undefined;
+    const schedules = await this.service.listSchedules(req.tenant.id, wardId);
+    sendSuccess(res, schedules, { tenantId: req.tenant.id });
+  };
+
   public getSchedulesByWard = async (req: Request, res: Response): Promise<void> => {
     if (!req.tenant) throw new BadRequestError('Tenant context required');
     const { id: wardId } = IdParamSchema.parse(req.params);

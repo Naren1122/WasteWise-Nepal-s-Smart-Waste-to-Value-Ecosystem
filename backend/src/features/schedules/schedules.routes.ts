@@ -19,7 +19,13 @@ router.get(
   asyncHandler(controller.getCalendarPickups)
 );
 
-// 2. Collection Rules Management
+// 2. Collection Schedules List (All or filtered by wardId)
+router.get(
+  '/schedules',
+  asyncHandler(controller.listSchedules)
+);
+
+// 3. Collection Rules Management
 router.post(
   '/schedules',
   requireRole([Role.MUNICIPAL_ADMIN, Role.SUPER_ADMIN, Role.WARD_OFFICER]),

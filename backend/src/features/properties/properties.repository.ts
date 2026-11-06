@@ -59,7 +59,7 @@ export class PropertyRepository implements IPropertyRepository {
     filter: PropertyFilterParams
   ): Promise<{ properties: PropertyWithRelations[]; totalCount: number }> {
     const page = filter.page ?? 1;
-    const pageSize = filter.pageSize ?? 20;
+    const pageSize = filter.pageSize ?? 8;
     const skip = (page - 1) * pageSize;
 
     const where: Prisma.PropertyWhereInput = {

@@ -79,7 +79,7 @@ export class PlansRepository implements IPlansRepository {
     }
 
     const page = filter.page ?? 1;
-    const pageSize = filter.pageSize ?? 20;
+    const pageSize = filter.pageSize ?? 8;
 
     const [plans, totalCount] = await Promise.all([
       prisma.servicePlan.findMany({
@@ -109,6 +109,12 @@ export class PlansRepository implements IPlansRepository {
         ...(data.isActive !== undefined && { isActive: data.isActive }),
       },
       include: { _count: { select: { subscriptions: true } } },
+    });
+  }
+
+  public async deletePlan(tenantId: string, id: string): Promise<void> {
+    await prisma.servicePlan.delete({
+      where: { id, tenantId },
     });
   }
 

@@ -8,6 +8,9 @@ import { wardRoutes } from './features/wards/wards.routes.js';
 import { plansRoutes } from './features/plans/plans.routes.js';
 import { scheduleRoutes } from './features/schedules/schedules.routes.js';
 import { bulkyWasteRoutes } from './features/bulky-waste/bulky-waste.routes.js';
+import { fleetRoutes } from './features/fleet/fleet.routes.js';
+import { routesRoutes } from './features/routes/routes.routes.js';
+import { trackingRoutes } from './features/tracking/tracking.routes.js';
 import { errorHandlerMiddleware } from './shared/errors/error-handler.middleware.js';
 import { NotFoundError } from './shared/errors/app-error.js';
 
@@ -43,6 +46,9 @@ export const createApp = (): Application => {
   apiRouter.use(plansRoutes);
   apiRouter.use(scheduleRoutes);
   apiRouter.use(bulkyWasteRoutes);
+  apiRouter.use(fleetRoutes);
+  apiRouter.use(routesRoutes);
+  apiRouter.use(trackingRoutes);
 
   app.use('/api/v1', apiRouter);
 

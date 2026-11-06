@@ -1,5 +1,5 @@
 import process from 'node:process';
-import { PrismaClient, Role, UserStatus } from '@prisma/client';
+import { PrismaClient, Role, UserStatus, WasteType, PropertyType, PropertyStatus, SubscriptionStatus, VehicleType, VehicleStatus } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
@@ -11,8 +11,17 @@ async function main(): Promise<void> {
   const defaultPassword = 'Password123!';
   const passwordHash = await bcrypt.hash(defaultPassword, 12);
 
-  // 2. Clean existing records in development (order matters due to foreign keys)
+  // 2. Clean existing records in development (reverse dependency order)
   console.log('🧹 Cleaning existing data...');
+  await prisma.routeStop.deleteMany({});
+  await prisma.route.deleteMany({});
+  await prisma.vehicle.deleteMany({});
+  await prisma.subscription.deleteMany({});
+  await prisma.bulkyWasteRequest.deleteMany({});
+  await prisma.property.deleteMany({});
+  await prisma.servicePlan.deleteMany({});
+  await prisma.collectionSchedule.deleteMany({});
+  await prisma.serviceZone.deleteMany({});
   await prisma.refreshToken.deleteMany({});
   await prisma.user.deleteMany({});
   await prisma.ward.deleteMany({});
@@ -57,52 +66,215 @@ async function main(): Promise<void> {
     },
   });
 
-  const ward1Kmc = kmcTenant.wards.find((w) => w.wardNumber === 1);
-  const ward32Kmc = kmcTenant.wards.find((w) => w.wardNumber === 32);
+  const ward1Kmc = kmcTenant.wards.find((w) => w.wardNumber === 1)!;
+  const ward3Kmc = kmcTenant.wards.find((w) => w.wardNumber === 3)!;
+  const ward4Kmc = kmcTenant.wards.find((w) => w.wardNumber === 4)!;
+  const ward32Kmc = kmcTenant.wards.find((w) => w.wardNumber === 32)!;
 
-  // KMC Users (Admin, Staff, Citizen)
-  await prisma.user.createMany({
+  // KMC Users
+  const kmcAdmin = await prisma.user.create({
+    data: {
+      tenantId: kmcTenant.id,
+      fullName: 'KMC Municipal Administrator',
+      email: 'admin@kathmandu.gov.np',
+      phone: '+9779851000001',
+      passwordHash,
+      role: Role.MUNICIPAL_ADMIN,
+      status: UserStatus.ACTIVE,
+    },
+  });
+
+  await prisma.user.create({
+    data: {
+      tenantId: kmcTenant.id,
+      wardId: ward1Kmc.id,
+      fullName: 'Suman Shrestha (Ward 1 Officer)',
+      email: 'ward1@kathmandu.gov.np',
+      phone: '+9779851000002',
+      passwordHash,
+      role: Role.WARD_OFFICER,
+      status: UserStatus.ACTIVE,
+    },
+  });
+
+  const kmcDriver = await prisma.user.create({
+    data: {
+      tenantId: kmcTenant.id,
+      wardId: null,
+      fullName: 'Ram Bahadur (KMC Route Driver)',
+      email: 'driver1@kathmandu.gov.np',
+      phone: '+9779851000003',
+      passwordHash,
+      role: Role.DRIVER,
+      status: UserStatus.ACTIVE,
+    },
+  });
+
+  const kmcCitizen = await prisma.user.create({
+    data: {
+      tenantId: kmcTenant.id,
+      wardId: ward32Kmc.id,
+      fullName: 'Aayush Adhikari (Citizen)',
+      email: 'citizen.kmc@example.com',
+      phone: '+9779841234567',
+      passwordHash,
+      role: Role.CITIZEN,
+      status: UserStatus.ACTIVE,
+    },
+  });
+
+  // KMC Service Plans
+  console.log('📋 Seeding KMC Service Plans...');
+  const organicPlan = await prisma.servicePlan.create({
+    data: {
+      tenantId: kmcTenant.id,
+      name: 'Residential Organic Waste Collection',
+      code: 'KMC-RES-ORG',
+      description: 'Daily biodegradable kitchen and garden waste collection',
+      propertyType: PropertyType.RESIDENTIAL,
+      wasteType: WasteType.ORGANIC,
+      monthlyRateNpr: 450,
+      isActive: true,
+    },
+  });
+
+  const recyclablePlan = await prisma.servicePlan.create({
+    data: {
+      tenantId: kmcTenant.id,
+      name: 'Residential Recyclables Collection',
+      code: 'KMC-RES-REC',
+      description: 'Bi-weekly paper, plastics, and metals collection',
+      propertyType: PropertyType.RESIDENTIAL,
+      wasteType: WasteType.RECYCLABLE,
+      monthlyRateNpr: 350,
+      isActive: true,
+    },
+  });
+
+  const hazardousPlan = await prisma.servicePlan.create({
+    data: {
+      tenantId: kmcTenant.id,
+      name: 'Hazardous & E-Waste Special Pickup',
+      code: 'KMC-RES-HAZ',
+      description: 'Batteries, electronics, medical waste safe disposal',
+      propertyType: PropertyType.RESIDENTIAL,
+      wasteType: WasteType.HAZARDOUS,
+      monthlyRateNpr: 600,
+      isActive: true,
+    },
+  });
+
+  // KMC Properties & Subscriptions across Wards
+  console.log('🏠 Seeding KMC Properties and Subscriptions...');
+  const propWard1 = await prisma.property.create({
+    data: {
+      tenantId: kmcTenant.id,
+      wardId: ward1Kmc.id,
+      userId: kmcCitizen.id,
+      propertyType: PropertyType.RESIDENTIAL,
+      status: PropertyStatus.ACTIVE,
+      houseNumber: '12B',
+      streetAddress: 'Naxal Bhagwati Marg',
+      latitude: 27.7172,
+      longitude: 85.324,
+      contactName: 'Aayush Adhikari',
+      contactPhone: '+9779841234567',
+    },
+  });
+
+  const propWard32A = await prisma.property.create({
+    data: {
+      tenantId: kmcTenant.id,
+      wardId: ward32Kmc.id,
+      userId: kmcCitizen.id,
+      propertyType: PropertyType.RESIDENTIAL,
+      status: PropertyStatus.ACTIVE,
+      houseNumber: '8A',
+      streetAddress: 'Koteshwor Chowk',
+      latitude: 27.678,
+      longitude: 85.348,
+      contactName: 'Aayush Adhikari',
+      contactPhone: '+9779841234567',
+    },
+  });
+
+  const propWard32B = await prisma.property.create({
+    data: {
+      tenantId: kmcTenant.id,
+      wardId: ward32Kmc.id,
+      userId: kmcCitizen.id,
+      propertyType: PropertyType.RESIDENTIAL,
+      status: PropertyStatus.ACTIVE,
+      houseNumber: '15',
+      streetAddress: 'Jadibuti Marg',
+      latitude: 27.675,
+      longitude: 85.352,
+      contactName: 'Aayush Adhikari',
+      contactPhone: '+9779841234567',
+    },
+  });
+
+  // Subscriptions linking properties to plans
+  await prisma.subscription.createMany({
     data: [
       {
         tenantId: kmcTenant.id,
-        fullName: 'KMC Municipal Administrator',
-        email: 'admin@kathmandu.gov.np',
-        phone: '+9779851000001',
-        passwordHash,
-        role: Role.MUNICIPAL_ADMIN,
-        status: UserStatus.ACTIVE,
+        propertyId: propWard1.id,
+        planId: organicPlan.id,
+        userId: kmcCitizen.id,
+        status: SubscriptionStatus.ACTIVE,
       },
       {
         tenantId: kmcTenant.id,
-        wardId: ward1Kmc ? ward1Kmc.id : null,
-        fullName: 'Suman Shrestha (Ward 1 Officer)',
-        email: 'ward1@kathmandu.gov.np',
-        phone: '+9779851000002',
-        passwordHash,
-        role: Role.WARD_OFFICER,
-        status: UserStatus.ACTIVE,
+        propertyId: propWard32A.id,
+        planId: organicPlan.id,
+        userId: kmcCitizen.id,
+        status: SubscriptionStatus.ACTIVE,
       },
       {
         tenantId: kmcTenant.id,
-        wardId: null,
-        fullName: 'Ram Bahadur (KMC Route Driver)',
-        email: 'driver1@kathmandu.gov.np',
-        phone: '+9779851000003',
-        passwordHash,
-        role: Role.DRIVER,
-        status: UserStatus.ACTIVE,
+        propertyId: propWard32A.id,
+        planId: hazardousPlan.id,
+        userId: kmcCitizen.id,
+        status: SubscriptionStatus.ACTIVE,
       },
       {
         tenantId: kmcTenant.id,
-        wardId: ward32Kmc ? ward32Kmc.id : null,
-        fullName: 'Aayush Adhikari (Citizen)',
-        email: 'citizen.kmc@example.com',
-        phone: '+9779841234567',
-        passwordHash,
-        role: Role.CITIZEN,
-        status: UserStatus.ACTIVE,
+        propertyId: propWard32B.id,
+        planId: organicPlan.id,
+        userId: kmcCitizen.id,
+        status: SubscriptionStatus.ACTIVE,
+      },
+      {
+        tenantId: kmcTenant.id,
+        propertyId: propWard32B.id,
+        planId: recyclablePlan.id,
+        userId: kmcCitizen.id,
+        status: SubscriptionStatus.ACTIVE,
+      },
+      {
+        tenantId: kmcTenant.id,
+        propertyId: propWard32B.id,
+        planId: hazardousPlan.id,
+        userId: kmcCitizen.id,
+        status: SubscriptionStatus.ACTIVE,
       },
     ],
+  });
+
+  // Seed Fleet Vehicle in KMC
+  console.log('🚛 Seeding Fleet Vehicles...');
+  await prisma.vehicle.create({
+    data: {
+      tenantId: kmcTenant.id,
+      registrationNo: 'BA-1-KHA-4029',
+      vehicleType: VehicleType.COMPACTOR,
+      capacityKg: 5000,
+      fuelType: 'DIESEL',
+      status: VehicleStatus.AVAILABLE,
+      assignedDriverId: kmcDriver.id,
+      notes: 'Primary morning compactor for KMC central wards',
+    },
   });
 
   // 4. Seed Tenant 2: Lalitpur Metropolitan City (LMC)
@@ -134,9 +306,8 @@ async function main(): Promise<void> {
     },
   });
 
-  const ward2Lmc = lmcTenant.wards.find((w) => w.wardNumber === 2);
+  const ward2Lmc = lmcTenant.wards.find((w) => w.wardNumber === 2)!;
 
-  // LMC Users (Admin, Citizen)
   await prisma.user.createMany({
     data: [
       {
@@ -151,7 +322,7 @@ async function main(): Promise<void> {
       },
       {
         tenantId: lmcTenant.id,
-        wardId: ward2Lmc ? ward2Lmc.id : null,
+        wardId: ward2Lmc.id,
         fullName: 'Bikash Maharjan (Citizen)',
         email: 'citizen.lmc@example.com',
         phone: '+9779841987654',
@@ -179,4 +350,3 @@ main()
   .finally(async () => {
     await prisma.$disconnect();
   });
-

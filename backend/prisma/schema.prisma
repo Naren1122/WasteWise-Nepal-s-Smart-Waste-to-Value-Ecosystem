@@ -66,6 +66,37 @@ enum PickupStatus {
   CANCELLED
 }
 
+enum VehicleType {
+  COMPACTOR
+  TIPPER
+  TRUCK
+  TRACTOR
+  ELECTRIC_CART
+}
+
+enum VehicleStatus {
+  AVAILABLE
+  ON_ROUTE
+  MAINTENANCE
+  RETIRED
+}
+
+enum RouteStatus {
+  DRAFT
+  DISPATCHED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum StopStatus {
+  PENDING
+  COLLECTED
+  PARTIAL
+  MISSED
+  REJECTED
+}
+
 model Tenant {
   id        String   @id @default(uuid()) @db.Uuid
   name      String   @db.VarChar(100)
@@ -86,6 +117,10 @@ model Tenant {
   collectionSchedules CollectionSchedule[]
   scheduledPickups    ScheduledPickup[]
   bulkyWasteRequests  BulkyWasteRequest[]
+  vehicles            Vehicle[]
+  routes              Route[]
+  routeStops          RouteStop[]
+  vehicleLocations    VehicleLocation[]
 
   @@map("tenants")
 }
@@ -105,6 +140,7 @@ model Ward {
   properties          Property[]
   collectionSchedules CollectionSchedule[]
   scheduledPickups    ScheduledPickup[]
+  routes              Route[]
 
   @@unique([id, tenantId])
   @@unique([tenantId, wardNumber])
@@ -130,10 +166,13 @@ model User {
   properties         Property[]
   subscriptions      Subscription[]
   bulkyWasteRequests BulkyWasteRequest[]
+  vehiclesDriven     Vehicle[]           @relation("VehicleDriver")
+  routesDriven       Route[]             @relation("RouteDriver")
 
   @@unique([tenantId, email])
   @@unique([tenantId, phone])
   @@unique([id, tenantId])
+  
   @@index([tenantId, role])
   @@index([tenantId, wardId])
   @@map("users")
@@ -169,6 +208,7 @@ model ServiceZone {
   ward                Ward                 @relation(fields: [wardId], references: [id], onDelete: Cascade)
   properties          Property[]
   collectionSchedules CollectionSchedule[]
+  routes              Route[]
 
   @@unique([id, tenantId])
   @@unique([tenantId, wardId, code])
@@ -200,6 +240,7 @@ model Property {
   subscriptions      Subscription[]
   scheduledPickups   ScheduledPickup[]
   bulkyWasteRequests BulkyWasteRequest[]
+  routeStops         RouteStop[]
 
   @@unique([id, tenantId])
   @@index([tenantId, wardId])
@@ -314,18 +355,124 @@ model BulkyWasteRequest {
   preferredDate   DateTime         @map("preferred_date") @db.Date
   scheduledDate   DateTime?        @map("scheduled_date") @db.Date
   status          BulkyWasteStatus @default(SUBMITTED)
-  quotedAmountNpr Decimal?         @map("quoted_amount_npr") @db.Decimal(10, 2)
+  quotedAmountNpr Float?           @map("quoted_amount_npr")
   officerNotes    String?          @map("officer_notes") @db.VarChar(500)
   createdAt       DateTime         @default(now()) @map("created_at")
   updatedAt       DateTime         @updatedAt @map("updated_at")
 
-  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  property Property @relation(fields: [propertyId, tenantId], references: [id, tenantId], onDelete: Cascade)
-  user     User     @relation(fields: [userId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  tenant     Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  property   Property    @relation(fields: [propertyId, tenantId], references: [id, tenantId], onDelete: Cascade)
+  user       User        @relation(fields: [userId, tenantId], references: [id, tenantId], onDelete: Restrict)
+  routeStops RouteStop[]
 
   @@unique([id, tenantId])
   @@index([tenantId, propertyId])
   @@index([tenantId, userId])
   @@index([tenantId, status])
   @@map("bulky_waste_requests")
+}
+
+model Vehicle {
+  id               String        @id @default(uuid()) @db.Uuid
+  tenantId         String        @map("tenant_id") @db.Uuid
+  registrationNo   String        @map("registration_no") @db.VarChar(50)
+  vehicleType      VehicleType   @map("vehicle_type")
+  capacityKg       Float         @map("capacity_kg")
+  fuelType         String?       @map("fuel_type") @db.VarChar(30)
+  status           VehicleStatus @default(AVAILABLE)
+  assignedDriverId String?       @map("assigned_driver_id") @db.Uuid
+  notes            String?       @db.VarChar(255)
+  createdAt        DateTime      @default(now()) @map("created_at")
+  updatedAt        DateTime      @updatedAt @map("updated_at")
+
+  tenant         Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  assignedDriver User?   @relation("VehicleDriver", fields: [assignedDriverId, tenantId], references: [id, tenantId], onDelete: SetNull)
+  routes         Route[]
+  locations      VehicleLocation[]
+
+  @@unique([id, tenantId])
+  @@unique([tenantId, registrationNo])
+  @@index([tenantId, status])
+  @@map("vehicles")
+}
+
+model Route {
+  id        String      @id @default(uuid()) @db.Uuid
+  tenantId  String      @map("tenant_id") @db.Uuid
+  wardId    String      @map("ward_id") @db.Uuid
+  zoneId    String?     @map("zone_id") @db.Uuid
+  vehicleId String?     @map("vehicle_id") @db.Uuid
+  driverId  String?     @map("driver_id") @db.Uuid
+  routeDate DateTime    @map("route_date") @db.Date
+  wasteType WasteType   @map("waste_type")
+  status    RouteStatus @default(DRAFT)
+  startTime DateTime?   @map("start_time")
+  endTime   DateTime?   @map("end_time")
+  notes     String?     @db.VarChar(500)
+  createdAt DateTime    @default(now()) @map("created_at")
+  updatedAt DateTime    @updatedAt @map("updated_at")
+
+  tenant  Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  ward    Ward         @relation(fields: [wardId, tenantId], references: [id, tenantId], onDelete: Cascade)
+  zone    ServiceZone? @relation(fields: [zoneId, tenantId], references: [id, tenantId], onDelete: SetNull)
+  vehicle Vehicle?     @relation(fields: [vehicleId, tenantId], references: [id, tenantId], onDelete: SetNull)
+  driver  User?        @relation("RouteDriver", fields: [driverId, tenantId], references: [id, tenantId], onDelete: SetNull)
+  stops     RouteStop[]
+  locations VehicleLocation[]
+
+  @@unique([id, tenantId])
+  @@index([tenantId, wardId, routeDate])
+  @@index([tenantId, status])
+  @@index([tenantId, driverId])
+  @@map("routes")
+}
+
+model RouteStop {
+  id             String            @id @default(uuid()) @db.Uuid
+  tenantId       String            @map("tenant_id") @db.Uuid
+  routeId        String            @map("route_id") @db.Uuid
+  sequenceOrder  Int               @map("sequence_order")
+  propertyId     String?           @map("property_id") @db.Uuid
+  bulkyRequestId String?           @map("bulky_request_id") @db.Uuid
+  status         StopStatus        @default(PENDING)
+  failureReason  String?           @map("failure_reason") @db.VarChar(255)
+  proofPhotoUrl  String?           @map("proof_photo_url") @db.VarChar(500)
+  latitude       Float?
+  longitude      Float?
+  completedAt    DateTime?         @map("completed_at")
+  notes          String?           @db.VarChar(255)
+  createdAt      DateTime          @default(now()) @map("created_at")
+  updatedAt      DateTime          @updatedAt @map("updated_at")
+
+  tenant       Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  route        Route              @relation(fields: [routeId, tenantId], references: [id, tenantId], onDelete: Cascade)
+  property     Property?          @relation(fields: [propertyId, tenantId], references: [id, tenantId], onDelete: SetNull)
+  bulkyRequest BulkyWasteRequest? @relation(fields: [bulkyRequestId, tenantId], references: [id, tenantId], onDelete: SetNull)
+
+  @@unique([id, tenantId])
+  @@index([tenantId, routeId, sequenceOrder])
+  @@index([tenantId, status])
+  @@map("route_stops")
+}
+
+model VehicleLocation {
+  id         String   @id @default(uuid()) @db.Uuid
+  tenantId   String   @map("tenant_id") @db.Uuid
+  vehicleId  String   @map("vehicle_id") @db.Uuid
+  routeId    String?  @map("route_id") @db.Uuid
+  driverId   String?  @map("driver_id") @db.Uuid
+  latitude   Float
+  longitude  Float
+  speedKmh   Float?   @map("speed_kmh")
+  headingDeg Float?   @map("heading_deg")
+  recordedAt DateTime @default(now()) @map("recorded_at")
+
+  tenant  Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  vehicle Vehicle  @relation(fields: [vehicleId, tenantId], references: [id, tenantId], onDelete: Cascade)
+  route   Route?   @relation(fields: [routeId, tenantId], references: [id, tenantId], onDelete: SetNull)
+
+  @@unique([id, tenantId])
+  @@index([tenantId, vehicleId, recordedAt(sort: Desc)])
+  @@index([tenantId, routeId])
+  @@map("vehicle_locations")
 }

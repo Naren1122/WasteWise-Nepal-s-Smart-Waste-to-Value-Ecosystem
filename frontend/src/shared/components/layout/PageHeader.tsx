@@ -13,10 +13,10 @@ export interface PageHeaderProps {
 export function PageHeader({ title, badge, actions }: PageHeaderProps) {
   return (
     <header className="flex h-16 shrink-0 items-center justify-between border-b border-slate-300 bg-white px-4 sm:px-6 sticky top-0 z-10 gap-3 sm:gap-4 shadow-2xs">
-      {/* Left: Sidebar trigger, separator, title and optional badge */}
+      {/* Left: Mobile sidebar trigger, title and optional badge */}
       <div className="flex items-center gap-2.5 sm:gap-3.5 shrink-0 min-w-0">
-        <SidebarTrigger className="-ml-1 h-9 w-9 text-slate-700 hover:text-slate-900 shrink-0" />
-        <Separator orientation="vertical" className="h-5 hidden sm:block shrink-0" />
+        <SidebarTrigger className="-ml-1 h-8 w-8 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg shrink-0 md:hidden cursor-pointer" />
+        <Separator orientation="vertical" className="h-5 md:hidden shrink-0" />
         <h1 className="text-[16px] sm:text-xl lg:text-[22px] font-bold tracking-tight text-slate-900 whitespace-nowrap">
           {title}
         </h1>

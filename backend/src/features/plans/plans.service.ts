@@ -76,6 +76,19 @@ export class PlansService {
     return this.toPlanDto(updated);
   }
 
+  public async deletePlan(tenantId: string, id: string): Promise<void> {
+    const plan = await this.repo.findPlanById(tenantId, id);
+    if (!plan) {
+      throw new NotFoundError('Service plan', id);
+    }
+    if (plan._count && plan._count.subscriptions > 0) {
+      throw new ConflictError(
+        'Cannot delete service plan with active subscriptions. Please deactivate the plan instead.'
+      );
+    }
+    await this.repo.deletePlan(tenantId, id);
+  }
+
   public async createSubscription(
     tenantId: string,
     userId: string,

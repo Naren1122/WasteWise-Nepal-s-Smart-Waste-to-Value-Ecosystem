@@ -1,4 +1,5 @@
 import { ApiResponse, ApiErrorResponse, AuthTokens } from '../types/api.types';
+import { useAuthStore } from '../stores/auth.store';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1';
 
@@ -15,6 +16,8 @@ export class ApiClientError extends Error {
 }
 
 class ApiClient {
+  private refreshPromise: Promise<string | null> | null = null;
+
   private getAuthTokens(): AuthTokens | null {
     if (typeof window === 'undefined') return null;
     const tokens = localStorage.getItem('wastewise_tokens');
@@ -29,6 +32,66 @@ class ApiClient {
   private getTenantSubdomain(): string | null {
     if (typeof window === 'undefined') return null;
     return localStorage.getItem('wastewise_tenant_subdomain');
+  }
+
+  private handleSessionExpired(): void {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('wastewise_tokens');
+      localStorage.removeItem('wastewise_user');
+      useAuthStore.getState().logout();
+
+      const path = window.location.pathname;
+      if (!path.includes('/login') && !path.includes('/register')) {
+        window.location.href = '/login?expired=1';
+      }
+    }
+  }
+
+  private async refreshAccessToken(): Promise<string | null> {
+    // If a refresh is already in flight, reuse the promise (prevents token rotation stampede)
+    if (this.refreshPromise) {
+      return this.refreshPromise;
+    }
+
+    this.refreshPromise = (async () => {
+      try {
+        const tokens = this.getAuthTokens();
+        if (!tokens?.refreshToken) {
+          this.handleSessionExpired();
+          return null;
+        }
+
+        const refreshRes = await fetch(`${API_BASE_URL}/auth/refresh`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refreshToken: tokens.refreshToken }),
+        });
+
+        if (!refreshRes.ok) {
+          this.handleSessionExpired();
+          return null;
+        }
+
+        const refreshBody = (await refreshRes.json()) as ApiResponse<AuthTokens>;
+        if (!refreshBody.data?.accessToken) {
+          this.handleSessionExpired();
+          return null;
+        }
+
+        const newTokens = refreshBody.data;
+        localStorage.setItem('wastewise_tokens', JSON.stringify(newTokens));
+        useAuthStore.getState().setTokens(newTokens);
+
+        return newTokens.accessToken;
+      } catch {
+        this.handleSessionExpired();
+        return null;
+      } finally {
+        this.refreshPromise = null;
+      }
+    })();
+
+    return this.refreshPromise;
   }
 
   public async request<T>(
@@ -68,30 +131,16 @@ class ApiClient {
       // Auto-refresh expired access tokens seamlessly (GEMINI.md Rule 5.2)
       if (
         response.status === 401 &&
-        tokens?.refreshToken &&
         endpoint !== '/auth/refresh' &&
         endpoint !== '/auth/login'
       ) {
-        try {
-          const refreshRes = await fetch(`${API_BASE_URL}/auth/refresh`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ refreshToken: tokens.refreshToken }),
-          });
-
-          if (refreshRes.ok) {
-            const refreshBody = (await refreshRes.json()) as ApiResponse<AuthTokens>;
-            if (refreshBody.data) {
-              localStorage.setItem('wastewise_tokens', JSON.stringify(refreshBody.data));
-              headers['Authorization'] = `Bearer ${refreshBody.data.accessToken}`;
-              const retryResponse = await fetch(url, { ...options, headers });
-              if (retryResponse.ok) {
-                return (await retryResponse.json()) as ApiResponse<T>;
-              }
-            }
+        const newAccessToken = await this.refreshAccessToken();
+        if (newAccessToken) {
+          headers['Authorization'] = `Bearer ${newAccessToken}`;
+          const retryResponse = await fetch(url, { ...options, headers });
+          if (retryResponse.ok) {
+            return (await retryResponse.json()) as ApiResponse<T>;
           }
-        } catch {
-          // Refresh failed, continue to throw ApiClientError
         }
       }
 
@@ -131,4 +180,3 @@ class ApiClient {
 }
 
 export const apiClient = new ApiClient();
-

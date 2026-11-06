@@ -49,8 +49,8 @@ export const CreateSubscriptionSchema = z.object({
   startDate: z.coerce.date().optional(),
 });
 
-export type CreateServicePlanInput = z.infer<typeof CreateServicePlanSchema>;
-export type UpdateServicePlanInput = z.infer<typeof UpdateServicePlanSchema>;
+export type CreateServicePlanInput = z.input<typeof CreateServicePlanSchema>;
+export type UpdateServicePlanInput = z.input<typeof UpdateServicePlanSchema>;
 export type ServicePlanFilterInput = z.infer<typeof ServicePlanFilterSchema>;
 export type CreateSubscriptionInput = z.infer<typeof CreateSubscriptionSchema>;
 

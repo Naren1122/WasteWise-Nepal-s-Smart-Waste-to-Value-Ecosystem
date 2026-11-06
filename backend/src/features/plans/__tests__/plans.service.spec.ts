@@ -63,6 +63,7 @@ describe('PlansService', () => {
       findSubscriptionsByProperty: vi.fn(),
       findActiveSubscription: vi.fn(),
       cancelSubscription: vi.fn(),
+      deletePlan: vi.fn(),
     };
 
     mockPropertyRepo = {

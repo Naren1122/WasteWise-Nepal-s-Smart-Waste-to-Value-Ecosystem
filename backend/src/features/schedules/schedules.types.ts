@@ -86,6 +86,7 @@ export interface GeneratePickupsOptions {
 export interface ISchedulesRepository {
   createSchedule(data: CreateCollectionScheduleData): Promise<CollectionScheduleWithRelations>;
   findScheduleById(tenantId: string, id: string): Promise<CollectionScheduleWithRelations | null>;
+  findSchedules(tenantId: string, wardId?: string): Promise<CollectionScheduleWithRelations[]>;
   findSchedulesByWard(tenantId: string, wardId: string): Promise<CollectionScheduleWithRelations[]>;
   findAllActiveSchedules(tenantId: string, dayOfWeek?: number): Promise<CollectionScheduleWithRelations[]>;
   updateSchedule(tenantId: string, id: string, data: UpdateCollectionScheduleData): Promise<CollectionScheduleWithRelations>;

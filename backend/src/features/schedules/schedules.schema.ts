@@ -41,7 +41,7 @@ export const CalendarQuerySchema = z.object({
   endDate: z.coerce.date(),
 });
 
-export type CreateCollectionScheduleInput = z.infer<typeof CreateCollectionScheduleSchema>;
-export type UpdateCollectionScheduleInput = z.infer<typeof UpdateCollectionScheduleSchema>;
+export type CreateCollectionScheduleInput = z.input<typeof CreateCollectionScheduleSchema>;
+export type UpdateCollectionScheduleInput = z.input<typeof UpdateCollectionScheduleSchema>;
 export type GeneratePickupsInput = z.infer<typeof GeneratePickupsSchema>;
 export type CalendarQueryInput = z.infer<typeof CalendarQuerySchema>;

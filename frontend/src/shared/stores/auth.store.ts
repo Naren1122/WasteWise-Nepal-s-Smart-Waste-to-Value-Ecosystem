@@ -9,6 +9,7 @@ export interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
   setSession: (session: AuthSession) => void;
+  setTokens: (tokens: AuthTokens) => void;
   setTenant: (id: string, subdomain: string) => void;
   logout: () => void;
   initialize: () => void;
@@ -36,6 +37,11 @@ export const useAuthStore = create<AuthState>((set) => ({
       isAuthenticated: true,
       isLoading: false,
     });
+  },
+
+  setTokens: (tokens: AuthTokens) => {
+    localStorage.setItem('wastewise_tokens', JSON.stringify(tokens));
+    set({ tokens });
   },
 
   setTenant: (id: string, subdomain: string) => {

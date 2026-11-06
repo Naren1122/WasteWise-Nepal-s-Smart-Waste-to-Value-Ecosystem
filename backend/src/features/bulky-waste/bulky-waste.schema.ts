@@ -47,13 +47,18 @@ export const ScheduleBulkyRequestSchema = z.object({
   officerNotes: z.string().trim().max(500).optional().nullable(),
 });
 
-export const RejectBulkyRequestSchema = z.object({
-  officerNotes: z
-    .string({ required_error: 'Rejection reason is required' })
-    .trim()
-    .min(3, 'Rejection reason must be at least 3 characters')
-    .max(500, 'Rejection reason cannot exceed 500 characters'),
-});
+export const RejectBulkyRequestSchema = z
+  .object({
+    officerNotes: z.string().trim().min(3, 'Rejection reason must be at least 3 characters').max(500).optional(),
+    reason: z.string().trim().min(3, 'Rejection reason must be at least 3 characters').max(500).optional(),
+  })
+  .refine((data) => !!(data.officerNotes || data.reason), {
+    message: 'Rejection reason is required and must be at least 3 characters',
+    path: ['officerNotes'],
+  })
+  .transform((data) => ({
+    officerNotes: (data.officerNotes || data.reason) as string,
+  }));
 
 export const CompleteBulkyRequestSchema = z.object({
   officerNotes: z.string().trim().max(500).optional().nullable(),

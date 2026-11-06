@@ -53,6 +53,15 @@ export class SchedulesService {
     return this.toScheduleDto(schedule);
   }
 
+  public async listSchedules(tenantId: string, wardId?: string): Promise<CollectionScheduleDto[]> {
+    if (wardId) {
+      const ward = await this.wardRepo.findWardById(tenantId, wardId);
+      if (!ward) throw new NotFoundError('Ward in municipality', wardId);
+    }
+    const schedules = await this.repo.findSchedules(tenantId, wardId);
+    return schedules.map((s) => this.toScheduleDto(s));
+  }
+
   public async getSchedulesByWard(tenantId: string, wardId: string): Promise<CollectionScheduleDto[]> {
     const ward = await this.wardRepo.findWardById(tenantId, wardId);
     if (!ward) throw new NotFoundError('Ward in municipality', wardId);

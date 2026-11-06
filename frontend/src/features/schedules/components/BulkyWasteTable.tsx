@@ -3,19 +3,15 @@
 import React, { useState } from 'react';
 import { Card } from '@/shared/components/ui/card';
 import { Button } from '@/shared/components/ui/button';
-import { Badge } from '@/shared/components/ui/badge';
-import { Input } from '@/shared/components/ui/input';
+import { useAuthStore } from '@/shared/stores/auth.store';
 import {
-  useScheduleBulkyPickup,
+  useApproveBulkyQuote,
+  useCompleteBulkyRequest,
+  useCancelBulkyRequest,
 } from '../hooks/useSchedules';
-import type { BulkyWasteRequest, BulkyWasteStatus } from '../types/schedules.types';
-
-const STATUS_BADGES: Record<BulkyWasteStatus, { label: string; className: string }> = {
-  REQUESTED: { label: 'Requested', className: 'bg-amber-50 text-amber-700 border-amber-200' },
-  SCHEDULED: { label: 'Scheduled', className: 'bg-sky-50 text-sky-700 border-sky-200' },
-  COLLECTED: { label: 'Collected', className: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
-  CANCELLED: { label: 'Cancelled', className: 'bg-rose-50 text-rose-700 border-rose-200' },
-};
+import { BulkyWasteActionDialog, BulkyActionType } from './BulkyWasteActionDialog';
+import { BulkyWasteCard, STATUS_CONFIG } from './BulkyWasteCard';
+import type { BulkyWasteRequest } from '../types/schedules.types';
 
 interface BulkyWasteTableProps {
   requests: BulkyWasteRequest[];
@@ -23,140 +19,189 @@ interface BulkyWasteTableProps {
 }
 
 export function BulkyWasteTable({ requests, isLoading }: BulkyWasteTableProps) {
-  const [activeRequestId, setActiveRequestId] = useState<string | null>(null);
-  const [scheduledDate, setScheduledDate] = useState<string>('');
-  const [quotedAmount, setQuotedAmount] = useState<string>('');
+  const { user } = useAuthStore();
+  const isOfficer = user && ['MUNICIPAL_ADMIN', 'SUPER_ADMIN', 'WARD_OFFICER', 'DISPATCHER'].includes(user.role);
 
-  const scheduleMutation = useScheduleBulkyPickup();
+  const [activeRequest, setActiveRequest] = useState<BulkyWasteRequest | null>(null);
+  const [activeAction, setActiveAction] = useState<BulkyActionType | null>(null);
 
-  const handleConfirmSchedule = async (requestId: string) => {
-    if (!scheduledDate) return;
-    await scheduleMutation.mutateAsync({
-      requestId,
-      scheduledDate,
-      quotedAmountNpr: quotedAmount ? Number(quotedAmount) : undefined,
-    });
-    setActiveRequestId(null);
-    setScheduledDate('');
-    setQuotedAmount('');
-  };
+  const approveMutation = useApproveBulkyQuote();
+  const completeMutation = useCompleteBulkyRequest();
+  const cancelMutation = useCancelBulkyRequest();
 
   if (isLoading) {
     return (
-      <Card className="p-6">
-        <div className="h-32 flex items-center justify-center text-slate-400 text-[15px]">
-          Loading bulky waste requests...
-        </div>
+      <Card className="p-8 text-center bg-white border border-slate-200 rounded-xl">
+        <p className="text-[14px] text-slate-500 animate-pulse">Loading bulky waste requests...</p>
+      </Card>
+    );
+  }
+
+  if (requests.length === 0) {
+    return (
+      <Card className="p-12 text-center bg-white border border-slate-200 rounded-xl shadow-xs">
+        <p className="text-base font-semibold text-slate-800">No bulky pickup requests found</p>
+        <p className="text-[13px] text-slate-500 mt-1">Book an on-demand collection for furniture, construction debris, or large items.</p>
       </Card>
     );
   }
 
   return (
-    <Card className="p-6 space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-[17px] font-semibold text-slate-900">Bulky Waste On-Demand Queue</h3>
-          <p className="text-[14px] text-slate-500">Citizen requests for large items and construction debris pickup</p>
-        </div>
+    <div className="space-y-3">
+      {/* 1. Mobile & Tablet Stacked Card View */}
+      <div className="block md:hidden space-y-3">
+        {requests.map((req) => (
+          <BulkyWasteCard
+            key={req.id}
+            request={req}
+            isOfficer={isOfficer}
+            onApprove={(id) => approveMutation.mutate(id)}
+            onCancel={(id) => cancelMutation.mutate(id)}
+            onComplete={(id) => completeMutation.mutate(id)}
+            onOpenAction={(r, action) => {
+              setActiveRequest(r);
+              setActiveAction(action);
+            }}
+          />
+        ))}
       </div>
 
-      {requests.length === 0 ? (
-        <div className="py-8 text-center text-slate-400 text-[14px]">
-          No bulky waste requests currently pending.
-        </div>
-      ) : (
+      {/* 2. Desktop High-Density Data Table */}
+      <Card className="hidden md:block overflow-hidden bg-white border border-slate-200 rounded-xl shadow-xs">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-[14px]">
-            <thead className="bg-slate-50 border-b border-slate-200/80 text-slate-600 font-semibold text-[13px]">
+          <table className="w-full text-left text-[13.5px]">
+            <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold text-[12px] uppercase tracking-wider">
               <tr>
-                <th className="py-3 px-4">Citizen</th>
-                <th className="py-3 px-4">Ward / Address</th>
-                <th className="py-3 px-4">Item Description</th>
-                <th className="py-3 px-4">Preferred Date</th>
+                <th className="py-3 px-4">Citizen / Contact</th>
+                <th className="py-3 px-4">Premises Address</th>
+                <th className="py-3 px-4">Items / Volume</th>
+                <th className="py-3 px-4">Timeline</th>
+                <th className="py-3 px-4">Quote / Fee</th>
                 <th className="py-3 px-4">Status</th>
-                <th className="py-3 px-4 text-right">Action</th>
+                <th className="py-3 px-4 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {requests.map((req) => {
-                const badge = STATUS_BADGES[req.status];
-                const isScheduling = activeRequestId === req.id;
+                const badge = STATUS_CONFIG[req.status];
+                const StatusIcon = badge.icon;
 
                 return (
-                  <tr key={req.id} className="hover:bg-slate-50/50">
-                    <td className="py-3 px-4">
-                      <div className="font-medium text-slate-900">{req.userName}</div>
-                      <div className="text-[12px] text-slate-500">{req.userPhone}</div>
+                  <tr key={req.id} className="hover:bg-slate-50/60 transition-colors">
+                    <td className="py-3.5 px-4">
+                      <div className="font-semibold text-slate-900 leading-tight">{req.userName}</div>
+                      <div className="text-[12px] text-slate-500 mt-0.5">{req.userPhone}</div>
                     </td>
-                    <td className="py-3 px-4">
-                      <span className="font-medium text-slate-800">Ward {req.wardNumber}</span>
+                    <td className="py-3.5 px-4">
+                      <div className="font-medium text-slate-800">Ward {req.wardNumber}</div>
                       <div className="text-[12px] text-slate-500 truncate max-w-[200px]">{req.propertyAddress}</div>
                     </td>
-                    <td className="py-3 px-4 text-slate-800 font-medium">
-                      {req.itemDescription}
+                    <td className="py-3.5 px-4 max-w-[240px]">
+                      <div className="font-medium text-slate-900 truncate">{req.itemDescription}</div>
                       {req.estimatedVolume && (
-                        <div className="text-[12px] text-slate-500">{req.estimatedVolume}</div>
+                        <div className="text-[11.5px] text-slate-500">{req.estimatedVolume}</div>
                       )}
                     </td>
-                    <td className="py-3 px-4 text-slate-600 font-mono text-[13px]">
-                      {new Date(req.preferredDate).toLocaleDateString()}
+                    <td className="py-3.5 px-4 whitespace-nowrap text-[12px]">
+                      <div className="text-slate-600">
+                        Pref: <span className="font-mono text-slate-800">{new Date(req.preferredDate).toLocaleDateString()}</span>
+                      </div>
+                      {req.scheduledDate && (
+                        <div className="text-emerald-700 font-semibold mt-0.5">
+                          Sched: <span className="font-mono">{new Date(req.scheduledDate).toLocaleDateString()}</span>
+                        </div>
+                      )}
                     </td>
-                    <td className="py-3 px-4">
-                      <span className={`inline-block text-[11px] font-semibold px-2.5 py-0.5 rounded-full border ${badge.className}`}>
-                        {badge.label}
+                    <td className="py-3.5 px-4 whitespace-nowrap">
+                      {req.quotedAmountNpr ? (
+                        <span className="font-bold text-slate-900 text-[13px] font-mono">
+                          NPR {req.quotedAmountNpr.toLocaleString()}
+                        </span>
+                      ) : (
+                        <span className="text-[12px] text-slate-400 italic">Pending quote</span>
+                      )}
+                    </td>
+                    <td className="py-3.5 px-4 whitespace-nowrap">
+                      <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${badge.className}`}>
+                        <StatusIcon className="w-3 h-3" />
+                        <span>{badge.label}</span>
                       </span>
                     </td>
-                    <td className="py-3 px-4 text-right">
-                      {req.status === 'REQUESTED' && !isScheduling && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setActiveRequestId(req.id);
-                            setScheduledDate(new Date(req.preferredDate).toISOString().split('T')[0] ?? '');
-                          }}
-                        >
-                          Schedule
-                        </Button>
-                      )}
-                      {isScheduling && (
-                        <div className="flex items-center justify-end gap-2">
-                          <Input
-                            type="date"
-                            value={scheduledDate}
-                            onChange={(e) => setScheduledDate(e.target.value)}
-                            className="w-36 h-8 text-[12px]"
-                          />
-                          <Input
-                            type="number"
-                            placeholder="NPR Fee"
-                            value={quotedAmount}
-                            onChange={(e) => setQuotedAmount(e.target.value)}
-                            className="w-24 h-8 text-[12px]"
-                          />
+                    <td className="py-3.5 px-4 text-right whitespace-nowrap">
+                      <div className="flex items-center justify-end gap-1.5">
+                        {req.status === 'QUOTED' && (
                           <Button
                             size="sm"
-                            className="h-8 text-[12px]"
-                            disabled={scheduleMutation.isPending || !scheduledDate}
-                            onClick={() => handleConfirmSchedule(req.id)}
+                            className="h-8 px-2.5 text-[12px] font-bold bg-emerald-800 hover:bg-emerald-900 text-white rounded-lg"
+                            onClick={() => approveMutation.mutate(req.id)}
+                            disabled={approveMutation.isPending}
                           >
-                            Save
+                            Approve Quote
                           </Button>
+                        )}
+
+                        {isOfficer && req.status === 'SUBMITTED' && (
+                          <>
+                            <Button
+                              size="sm"
+                              className="h-8 px-2.5 text-[12px] font-bold bg-indigo-700 hover:bg-indigo-800 text-white rounded-lg"
+                              onClick={() => {
+                                setActiveRequest(req);
+                                setActiveAction('QUOTE');
+                              }}
+                            >
+                              Quote Fee
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-8 px-2 text-[12px] text-rose-600 hover:bg-rose-50 border-rose-200 rounded-lg"
+                              onClick={() => {
+                                setActiveRequest(req);
+                                setActiveAction('REJECT');
+                              }}
+                            >
+                              Reject
+                            </Button>
+                          </>
+                        )}
+
+                        {isOfficer && req.status === 'APPROVED' && (
+                          <Button
+                            size="sm"
+                            className="h-8 px-2.5 text-[12px] font-bold bg-blue-700 hover:bg-blue-800 text-white rounded-lg"
+                            onClick={() => {
+                              setActiveRequest(req);
+                              setActiveAction('SCHEDULE');
+                            }}
+                          >
+                            Set Date
+                          </Button>
+                        )}
+
+                        {isOfficer && req.status === 'SCHEDULED' && (
+                          <Button
+                            size="sm"
+                            className="h-8 px-2.5 text-[12px] font-bold bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg"
+                            onClick={() => completeMutation.mutate(req.id)}
+                            disabled={completeMutation.isPending}
+                          >
+                            Mark Done
+                          </Button>
+                        )}
+
+                        {['SUBMITTED', 'QUOTED'].includes(req.status) && (
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="h-8 text-[12px]"
-                            onClick={() => setActiveRequestId(null)}
+                            className="h-8 px-2 text-[12px] text-slate-500 hover:text-slate-800"
+                            onClick={() => cancelMutation.mutate(req.id)}
+                            disabled={cancelMutation.isPending}
                           >
                             Cancel
                           </Button>
-                        </div>
-                      )}
-                      {req.status !== 'REQUESTED' && (
-                        <span className="text-[13px] text-slate-400 font-mono">
-                          {req.quotedAmountNpr ? `NPR ${req.quotedAmountNpr}` : '-'}
-                        </span>
-                      )}
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );
@@ -164,7 +209,17 @@ export function BulkyWasteTable({ requests, isLoading }: BulkyWasteTableProps) {
             </tbody>
           </table>
         </div>
-      )}
-    </Card>
+      </Card>
+
+      {/* Reusable Action Dialog */}
+      <BulkyWasteActionDialog
+        request={activeRequest}
+        actionType={activeAction}
+        onClose={() => {
+          setActiveRequest(null);
+          setActiveAction(null);
+        }}
+      />
+    </div>
   );
 }

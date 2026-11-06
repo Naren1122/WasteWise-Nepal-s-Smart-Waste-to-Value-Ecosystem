@@ -53,6 +53,18 @@ export class SchedulesRepository implements ISchedulesRepository {
     });
   }
 
+  public async findSchedules(tenantId: string, wardId?: string): Promise<CollectionScheduleWithRelations[]> {
+    const where: Prisma.CollectionScheduleWhereInput = {
+      tenantId,
+      ...(wardId ? { wardId } : {}),
+    };
+    return prisma.collectionSchedule.findMany({
+      where,
+      orderBy: [{ dayOfWeek: 'asc' }, { startTime: 'asc' }],
+      include: scheduleInclude,
+    });
+  }
+
   public async findSchedulesByWard(tenantId: string, wardId: string): Promise<CollectionScheduleWithRelations[]> {
     return prisma.collectionSchedule.findMany({
       where: { tenantId, wardId },
