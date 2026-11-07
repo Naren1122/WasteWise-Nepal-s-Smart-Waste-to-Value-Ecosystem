@@ -21,3 +21,4 @@ describe('haversineDistanceMeters', () => {
     expect(distance).toBeLessThan(10);
   });
 });
+

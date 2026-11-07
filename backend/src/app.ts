@@ -11,6 +11,8 @@ import { bulkyWasteRoutes } from './features/bulky-waste/bulky-waste.routes.js';
 import { fleetRoutes } from './features/fleet/fleet.routes.js';
 import { routesRoutes } from './features/routes/routes.routes.js';
 import { trackingRoutes } from './features/tracking/tracking.routes.js';
+import { billingRouter } from './features/billing/billing.routes.js';
+import { paymentsRouter } from './features/payments/payments.routes.js';
 import { errorHandlerMiddleware } from './shared/errors/error-handler.middleware.js';
 import { NotFoundError } from './shared/errors/app-error.js';
 
@@ -49,6 +51,8 @@ export const createApp = (): Application => {
   apiRouter.use(fleetRoutes);
   apiRouter.use(routesRoutes);
   apiRouter.use(trackingRoutes);
+  apiRouter.use('/invoices', billingRouter);
+  apiRouter.use('/payments', paymentsRouter);
 
   app.use('/api/v1', apiRouter);
 

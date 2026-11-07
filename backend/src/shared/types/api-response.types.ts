@@ -17,6 +17,11 @@ export interface PaginationMeta {
   hasPreviousPage: boolean;
 }
 
+export interface PaginatedResult<T> {
+  data: T[];
+  pagination: PaginationMeta;
+}
+
 export interface PaginatedResponse<T> {
   success: true;
   data: T[];

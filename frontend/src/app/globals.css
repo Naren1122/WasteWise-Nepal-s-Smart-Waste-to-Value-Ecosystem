@@ -45,3 +45,9 @@ body {
     --sidebar-ring: 160 84% 39%;
   }
 }
+
+/* Smooth Real-Time Leaflet Marker Gliding for WasteWise Truck Tracking */
+.leaflet-marker-icon.custom-truck-icon {
+  transition: transform 1.2s cubic-bezier(0.25, 1, 0.5, 1);
+  will-change: transform;
+}

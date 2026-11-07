@@ -1,18 +1,6 @@
-import { Role } from '@prisma/client';
+import type { TenantContext, UserContext } from './user-context.types.js';
 
-export interface TenantContext {
-  id: string;
-  name: string;
-  subdomain: string;
-}
-
-export interface UserContext {
-  id: string;
-  tenantId: string;
-  role: Role;
-  email: string;
-  wardId: string | null;
-}
+export type { TenantContext, UserContext };
 
 declare global {
   namespace Express {
@@ -22,4 +10,3 @@ declare global {
     }
   }
 }
-

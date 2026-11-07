@@ -10,11 +10,10 @@ export const requireRole = (allowedRoles: Role[]) => {
     }
 
     if (!allowedRoles.includes(req.user.role)) {
-      next(new ForbiddenError(`Permission denied: requires one of [${allowedRoles.join(', ')}]`));
+      next(new ForbiddenError('Insufficient permissions'));
       return;
     }
 
     next();
   };
 };
-

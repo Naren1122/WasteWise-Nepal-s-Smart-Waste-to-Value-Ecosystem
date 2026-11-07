@@ -12,13 +12,13 @@ import { Role } from '@prisma/client';
 const router = Router();
 const controller = new TrackingController();
 
-// 1. Ingest GPS telemetry (REST fallback for driver app or background worker)
+// 1. Ingest GPS telemetry (REST fallback for driver app or background worker) - Restricted to Role.DRIVER (Item 7)
 router.post(
   '/tracking/telemetry',
   tenantContextMiddleware,
   requireTenant,
   authGuard,
-  requireRole([Role.DRIVER, Role.MUNICIPAL_ADMIN, Role.SUPER_ADMIN]),
+  requireRole([Role.DRIVER]),
   asyncHandler(controller.ingestLocation)
 );
 

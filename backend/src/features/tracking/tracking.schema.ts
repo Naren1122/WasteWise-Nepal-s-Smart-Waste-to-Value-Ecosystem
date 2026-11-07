@@ -7,6 +7,10 @@ import { z } from 'zod';
 
 export const GpsLocationIngestSchema = z.object({
   vehicleId: z.string().uuid('Invalid vehicle UUID format'),
+  /**
+   * @deprecated Server strictly resolves active IN_PROGRESS route assigned to the driver
+   * and ignores client-supplied routeId to prevent shift-boundary bypasses.
+   */
   routeId: z.string().uuid('Invalid route UUID format').optional(),
   latitude: z
     .number({ required_error: 'Latitude is required', invalid_type_error: 'Latitude must be a valid number' })
@@ -37,9 +41,6 @@ export const RouteIdParamSchema = z.object({
   routeId: z.string().uuid('Invalid route UUID format'),
 });
 
-export const VehicleIdParamSchema = z.object({
-  vehicleId: z.string().uuid('Invalid vehicle UUID format'),
-});
-
 export type GpsLocationIngestDto = z.infer<typeof GpsLocationIngestSchema>;
 export type RouteBreadcrumbsQueryDto = z.infer<typeof RouteBreadcrumbsQuerySchema>;
+

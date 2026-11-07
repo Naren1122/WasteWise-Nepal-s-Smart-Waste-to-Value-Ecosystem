@@ -1,15 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
-import { env } from '../config/env.js';
-import { prisma } from '../database/prisma.service.js';
 import { UnauthorizedError, ForbiddenError } from '../errors/app-error.js';
-import { Role } from '@prisma/client';
-
-interface JwtAccessPayload {
-  userId: string;
-  tenantId: string;
-  role: Role;
-}
+import { authenticateAccessToken } from '../auth/authenticate-access-token.js';
 
 export const authGuard = async (
   req: Request,
@@ -18,36 +9,21 @@ export const authGuard = async (
 ): Promise<void> => {
   const authHeader = req.headers.authorization;
 
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    next(new UnauthorizedError('Missing or malformed Authorization header'));
+  if (!authHeader) {
+    next(new UnauthorizedError('Missing Authorization header'));
     return;
   }
 
-  const token = authHeader.split(' ')[1];
-  if (!token) {
-    next(new UnauthorizedError('Access token is required'));
+  const match = authHeader.match(/^bearer\s+(\S+)$/i);
+  if (!match || !match[1]) {
+    next(new UnauthorizedError('Malformed Authorization header: format must be Bearer <token>'));
     return;
   }
+
+  const token = match[1];
 
   try {
-    const decoded = jwt.verify(token, env.JWT_ACCESS_SECRET) as JwtAccessPayload;
-
-    const user = await prisma.user.findUnique({
-      where: { id: decoded.userId },
-      select: {
-        id: true,
-        tenantId: true,
-        email: true,
-        role: true,
-        status: true,
-        wardId: true,
-      },
-    });
-
-    if (!user || user.status !== 'ACTIVE') {
-      next(new UnauthorizedError('User account is invalid or deactivated'));
-      return;
-    }
+    const user = await authenticateAccessToken(token);
 
     // Hard Multi-Tenant Isolation Check
     if (req.tenant && req.tenant.id !== user.tenantId) {
@@ -55,21 +31,11 @@ export const authGuard = async (
       return;
     }
 
-    req.user = {
-      id: user.id,
-      tenantId: user.tenantId,
-      role: user.role,
-      email: user.email,
-      wardId: user.wardId,
-    };
-
+    req.user = user;
     next();
   } catch (error) {
-    if (error instanceof jwt.TokenExpiredError) {
-      next(new UnauthorizedError('Access token has expired'));
-      return;
-    }
-    next(new UnauthorizedError('Invalid access token'));
+    // Only JWT and account status issues throw UnauthorizedError (401).
+    // Database and unexpected infrastructure failures safely bubble to next(err) as 500s.
+    next(error);
   }
 };
-
