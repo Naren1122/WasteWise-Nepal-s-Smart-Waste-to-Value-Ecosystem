@@ -9,12 +9,12 @@ interface BillingStatsProps {
 }
 
 export function BillingStats({ invoices }: BillingStatsProps) {
-  const pendingInvoices = invoices.filter((i) => i.status === 'PENDING');
+  const pendingInvoices = invoices.filter((i) => i.status === 'ISSUED');
   const paidInvoices = invoices.filter((i) => i.status === 'PAID');
   const overdueInvoices = invoices.filter((i) => i.status === 'OVERDUE');
 
   const totalOutstanding = invoices
-    .filter((i) => i.status === 'PENDING' || i.status === 'OVERDUE')
+    .filter((i) => i.status === 'ISSUED' || i.status === 'OVERDUE')
     .reduce((sum, inv) => sum + inv.totalAmount, 0);
 
   const totalCollected = paidInvoices.reduce((sum, inv) => sum + inv.totalAmount, 0);

@@ -1,4 +1,4 @@
-export type InvoiceStatus = 'PENDING' | 'PAID' | 'OVERDUE' | 'CANCELLED' | 'VOID';
+export type InvoiceStatus = 'DRAFT' | 'ISSUED' | 'PAID' | 'OVERDUE' | 'CANCELLED';
 
 export type InvoiceItemType =
   | 'SUBSCRIPTION_MONTHLY'
@@ -48,7 +48,7 @@ export interface InvoiceFilterQuery {
 }
 
 export interface PaginatedInvoices {
-  items: InvoiceDetailDto[];
+  data: InvoiceDetailDto[];
   pagination: {
     page: number;
     pageSize: number;

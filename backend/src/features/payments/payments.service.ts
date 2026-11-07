@@ -49,7 +49,7 @@ export class PaymentsService {
     const amount = roundNpr(Number(invoice.totalAmount));
 
     // 1. Record pending payment transaction in immutable ledger
-    await this.repo.createInitiatedPayment({
+    const payment = await this.repo.createInitiatedPayment({
       tenantId,
       invoiceId: invoice.id,
       payerId: payer.id,
@@ -60,12 +60,18 @@ export class PaymentsService {
 
     // 2. Delegate to Gateway Provider strategy (DRY)
     const provider = PaymentProviderFactory.get(gateway);
-    return provider.initiatePayment({
+    const result = await provider.initiatePayment({
       tenantId,
       invoice,
       payer,
       transactionReference,
     });
+
+    if (result.gatewayRefId) {
+      await this.repo.updateGatewayRefId(tenantId, payment.id, result.gatewayRefId);
+    }
+
+    return result;
   }
 
   public async verifyAndSettle(

@@ -24,6 +24,7 @@ export interface KhaltiVerifyDto {
   transaction_id?: string;
   amount?: number;
   purchase_order_id?: string;
+  transactionReference?: string;
 }
 
 export interface CashPaymentDto {

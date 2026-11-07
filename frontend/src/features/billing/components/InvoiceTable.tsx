@@ -48,7 +48,7 @@ export function InvoiceTable({
       {/* Mobile Stacked Card View (< 640px) */}
       <div className="block sm:hidden space-y-3">
         {invoices.map((inv) => {
-          const isUnpaid = inv.status === 'PENDING' || inv.status === 'OVERDUE';
+          const isUnpaid = inv.status === 'ISSUED' || inv.status === 'OVERDUE';
           return (
             <div
               key={inv.id}
@@ -149,7 +149,7 @@ export function InvoiceTable({
           </thead>
           <tbody className="divide-y divide-slate-100 text-slate-700">
             {invoices.map((inv) => {
-              const isUnpaid = inv.status === 'PENDING' || inv.status === 'OVERDUE';
+              const isUnpaid = inv.status === 'ISSUED' || inv.status === 'OVERDUE';
               return (
                 <tr key={inv.id} className="hover:bg-slate-50/60 transition-colors">
                   <td className="py-3.5 px-4 font-mono font-semibold text-slate-900">

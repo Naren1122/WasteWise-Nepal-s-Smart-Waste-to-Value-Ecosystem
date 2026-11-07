@@ -31,7 +31,7 @@ export function InvoiceDetailModal({
 }: InvoiceDetailModalProps) {
   if (!invoice) return null;
 
-  const isUnpaid = invoice.status === 'PENDING' || invoice.status === 'OVERDUE';
+  const isUnpaid = invoice.status === 'ISSUED' || invoice.status === 'OVERDUE';
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>

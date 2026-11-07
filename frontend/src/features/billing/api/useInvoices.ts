@@ -33,8 +33,22 @@ export function useMyInvoices(
     queryKey: ['my-invoices', filter],
     queryFn: async () => {
       const qs = buildQueryString(filter);
-      const res = await apiClient.get<PaginatedInvoices>(`/invoices/my${qs}`);
-      return res.data;
+      const res = await apiClient.get<InvoiceDetailDto[]>(`/invoices/my${qs}`);
+      const raw = res as unknown as {
+        data: InvoiceDetailDto[];
+        pagination: PaginatedInvoices['pagination'];
+      };
+      return {
+        data: Array.isArray(raw.data) ? raw.data : [],
+        pagination: raw.pagination || {
+          page: 1,
+          pageSize: 20,
+          totalItems: 0,
+          totalPages: 1,
+          hasNextPage: false,
+          hasPreviousPage: false,
+        },
+      };
     },
     enabled: options?.enabled ?? true,
     staleTime: 30 * 1000,
@@ -52,8 +66,22 @@ export function useInvoices(
     queryKey: ['all-invoices', filter],
     queryFn: async () => {
       const qs = buildQueryString(filter);
-      const res = await apiClient.get<PaginatedInvoices>(`/invoices${qs}`);
-      return res.data;
+      const res = await apiClient.get<InvoiceDetailDto[]>(`/invoices${qs}`);
+      const raw = res as unknown as {
+        data: InvoiceDetailDto[];
+        pagination: PaginatedInvoices['pagination'];
+      };
+      return {
+        data: Array.isArray(raw.data) ? raw.data : [],
+        pagination: raw.pagination || {
+          page: 1,
+          pageSize: 20,
+          totalItems: 0,
+          totalPages: 1,
+          hasNextPage: false,
+          hasPreviousPage: false,
+        },
+      };
     },
     enabled: options?.enabled ?? true,
     staleTime: 30 * 1000,

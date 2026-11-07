@@ -35,7 +35,7 @@ export default function InvoicesPage() {
   const staffQuery = useInvoices({ status: selectedStatus, page }, { enabled: isStaff });
 
   const activeQuery = isStaff ? staffQuery : citizenQuery;
-  const invoices = activeQuery.data?.items ?? [];
+  const invoices = activeQuery.data?.data ?? [];
   const isLoading = activeQuery.isLoading;
 
   const generateMonthly = useGenerateMonthlyInvoices();
@@ -92,7 +92,7 @@ export default function InvoicesPage() {
           {(
             [
               { label: 'All Invoices', value: undefined },
-              { label: 'Pending', value: 'PENDING' },
+              { label: 'Unpaid / Issued', value: 'ISSUED' },
               { label: 'Paid', value: 'PAID' },
               { label: 'Overdue', value: 'OVERDUE' },
             ] as const

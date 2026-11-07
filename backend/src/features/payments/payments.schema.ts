@@ -19,6 +19,9 @@ export const EsewaCallbackSchema = z.object({
 export const KhaltiCallbackSchema = z.object({
   pidx: z.string().min(1, { message: 'Khalti pidx is required' }),
   transactionReference: z.string().optional(),
+  purchase_order_id: z.string().optional(),
+  transaction_id: z.string().optional(),
+  amount: z.number().optional(),
 });
 
 export const CashPaymentSchema = z.object({

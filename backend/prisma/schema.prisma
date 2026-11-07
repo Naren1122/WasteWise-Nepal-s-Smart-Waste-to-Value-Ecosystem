@@ -154,6 +154,7 @@ model Tenant {
   invoices            Invoice[]
   invoiceItems        InvoiceItem[]
   payments            Payment[]
+  complaints          Complaint[]
 
   @@map("tenants")
 }
@@ -174,6 +175,7 @@ model Ward {
   collectionSchedules CollectionSchedule[]
   scheduledPickups    ScheduledPickup[]
   routes              Route[]
+  complaints          Complaint[]
 
   @@unique([id, tenantId])
   @@unique([tenantId, wardNumber])
@@ -202,8 +204,13 @@ model User {
   vehiclesDriven     Vehicle[]           @relation("VehicleDriver")
   routesDriven       Route[]             @relation("RouteDriver")
   invoices           Invoice[]
-  paymentsMade       Payment[]           @relation("PayerRelation")
-  paymentsCollected  Payment[]           @relation("CashierRelation")
+  paymentsMade                 Payment[]             @relation("PayerRelation")
+  paymentsCollected            Payment[]             @relation("CashierRelation")
+  complaintsLodged             Complaint[]           @relation("CitizenComplaints")
+  complaintsAssigned           Complaint[]           @relation("AssignedComplaints")
+  complaintAttachmentsUploaded ComplaintAttachment[] @relation("UploadedAttachments")
+  complaintTimelinesPerformed  ComplaintTimeline[]   @relation("PerformedTimelines")
+  complaintsSubscribed         ComplaintSubscriber[] @relation("CitizenSubscribed")
 
   @@unique([tenantId, email])
   @@unique([tenantId, phone])
@@ -611,4 +618,145 @@ model Payment {
   @@index([tenantId, invoiceId, status])
   @@index([tenantId, payerId])
   @@map("payments")
+}
+
+// ----------------------------------------------------
+// PHASE 7: GRIEVANCE & CITIZEN COMPLAINT MANAGEMENT
+// ----------------------------------------------------
+
+enum ComplaintCategory {
+  MISSED_PICKUP
+  ILLEGAL_DUMPING
+  OVERFLOWING_BIN
+  STAFF_MISCONDUCT
+  DAMAGED_INFRASTRUCTURE
+  OTHER
+}
+
+enum ComplaintPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum ComplaintStatus {
+  SUBMITTED
+  UNDER_REVIEW
+  ASSIGNED
+  IN_PROGRESS
+  RESOLVED
+  REJECTED
+  REOPENED
+  CLOSED
+}
+
+enum ComplaintAttachmentType {
+  REPORT_PHOTO
+  RESOLUTION_PROOF
+}
+
+model Complaint {
+  id              String            @id @default(uuid()) @db.Uuid
+  tenantId        String            @map("tenant_id") @db.Uuid
+  ticketNumber    String            @unique @map("ticket_number") @db.VarChar(32)
+  wardId          String            @map("ward_id") @db.Uuid
+  citizenId       String            @map("citizen_id") @db.Uuid
+  assignedToId    String?           @map("assigned_to_id") @db.Uuid
+  
+  category        ComplaintCategory @default(MISSED_PICKUP)
+  priority        ComplaintPriority @default(MEDIUM)
+  status          ComplaintStatus   @default(SUBMITTED)
+  
+  title           String            @db.VarChar(160)
+  description     String            @db.Text
+  latitude        Float             @db.DoublePrecision
+  longitude       Float             @db.DoublePrecision
+  addressText     String?           @map("address_text") @db.VarChar(255)
+  
+  slaDeadline     DateTime          @map("sla_deadline")
+  isSlaBreached   Boolean           @default(false) @map("is_sla_breached")
+  rejectionReason String?           @map("rejection_reason") @db.Text
+  
+  resolvedAt      DateTime?         @map("resolved_at")
+  closedAt        DateTime?         @map("closed_at")
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
+
+  tenant          Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  ward            Ward              @relation(fields: [wardId], references: [id], onDelete: Restrict)
+  citizen         User              @relation("CitizenComplaints", fields: [citizenId], references: [id], onDelete: Restrict)
+  assignedTo      User?             @relation("AssignedComplaints", fields: [assignedToId], references: [id], onDelete: SetNull)
+  
+  attachments     ComplaintAttachment[]
+  timelines       ComplaintTimeline[]
+  subscribers     ComplaintSubscriber[]
+  feedback        ComplaintFeedback?
+
+  @@unique([id, tenantId])
+  @@index([tenantId, status])
+  @@index([tenantId, wardId, status])
+  @@index([tenantId, citizenId])
+  @@index([tenantId, isSlaBreached, status])
+  @@map("complaints")
+}
+
+model ComplaintAttachment {
+  id              String                  @id @default(uuid()) @db.Uuid
+  complaintId     String                  @map("complaint_id") @db.Uuid
+  attachmentType  ComplaintAttachmentType @default(REPORT_PHOTO) @map("attachment_type")
+  fileUrl         String                  @map("file_url") @db.Text
+  fileKey         String                  @map("file_key") @db.VarChar(255)
+  mimeType        String                  @map("mime_type") @db.VarChar(64)
+  fileSize        Int                     @map("file_size")
+  uploadedById    String                  @map("uploaded_by_id") @db.Uuid
+  createdAt       DateTime                @default(now()) @map("created_at")
+
+  complaint       Complaint               @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  uploadedBy      User                    @relation("UploadedAttachments", fields: [uploadedById], references: [id], onDelete: Restrict)
+
+  @@index([complaintId])
+  @@map("complaint_attachments")
+}
+
+model ComplaintTimeline {
+  id              String           @id @default(uuid()) @db.Uuid
+  complaintId     String           @map("complaint_id") @db.Uuid
+  fromStatus      ComplaintStatus? @map("from_status")
+  toStatus        ComplaintStatus  @map("to_status")
+  action          String           @db.VarChar(64)
+  notes           String?          @db.Text
+  performedById   String           @map("performed_by_id") @db.Uuid
+  createdAt       DateTime         @default(now()) @map("created_at")
+
+  complaint       Complaint        @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  performedBy     User             @relation("PerformedTimelines", fields: [performedById], references: [id], onDelete: Restrict)
+
+  @@index([complaintId, createdAt])
+  @@map("complaint_timelines")
+}
+
+model ComplaintSubscriber {
+  id          String    @id @default(uuid()) @db.Uuid
+  complaintId String    @map("complaint_id") @db.Uuid
+  citizenId   String    @map("citizen_id") @db.Uuid
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  complaint   Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  citizen     User      @relation("CitizenSubscribed", fields: [citizenId], references: [id], onDelete: Cascade)
+
+  @@unique([complaintId, citizenId])
+  @@map("complaint_subscribers")
+}
+
+model ComplaintFeedback {
+  id          String    @id @default(uuid()) @db.Uuid
+  complaintId String    @unique @map("complaint_id") @db.Uuid
+  rating      Int       @db.SmallInt
+  comments    String?   @db.Text
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  complaint   Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+
+  @@map("complaint_feedbacks")
 }

@@ -35,16 +35,15 @@ function EsewaCallbackContent() {
       { data },
       {
         onSuccess: (res) => {
-          if (res.isVerified) {
-            setStatus('success');
-            setTxDetails({
-              txRef: res.transactionReference,
-              amount: res.paidAmount,
-            });
-          } else {
-            setStatus('failed');
-            setErrorMessage(res.errorMessage || 'eSewa payment verification failed.');
-          }
+          setStatus('success');
+          setTxDetails({
+            txRef:
+              res.transactionReference ||
+              (res as unknown as { receiptNumber?: string }).receiptNumber ||
+              'N/A',
+            amount:
+              res.paidAmount || (res as unknown as { amount?: number }).amount || 0,
+          });
         },
         onError: (err) => {
           setStatus('failed');

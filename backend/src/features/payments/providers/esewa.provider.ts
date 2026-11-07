@@ -101,11 +101,29 @@ export class EsewaProvider implements IPaymentProvider {
     }
 
     // Defensive Integrity Check: Recompute HMAC-SHA256 signature
-    const formattedAmount = typeof total_amount === 'number' ? total_amount.toFixed(2) : total_amount;
-    const expectedSignature = this.generateSignature(
-      formattedAmount,
-      transaction_uuid,
-      product_code || env.ESEWA_PRODUCT_CODE
+    let expectedSignature: string;
+    if (decoded.signed_field_names) {
+      const fieldNames = decoded.signed_field_names.split(',');
+      const rawMap = decoded as unknown as Record<string, unknown>;
+      const messageData = fieldNames
+        .map((field) => `${field}=${rawMap[field] ?? ''}`)
+        .join(',');
+      expectedSignature = crypto
+        .createHmac('sha256', env.ESEWA_SECRET_KEY)
+        .update(messageData)
+        .digest('base64');
+    } else {
+      const formattedAmount =
+        typeof total_amount === 'number' ? total_amount.toFixed(2) : String(total_amount);
+      expectedSignature = this.generateSignature(
+        formattedAmount,
+        transaction_uuid,
+        product_code || env.ESEWA_PRODUCT_CODE
+      );
+    }
+
+    const cleanAmount = Number(
+      typeof total_amount === 'string' ? total_amount.replace(/,/g, '') : total_amount
     );
 
     if (signature !== expectedSignature) {
@@ -113,8 +131,8 @@ export class EsewaProvider implements IPaymentProvider {
         isVerified: false,
         transactionReference: transaction_uuid,
         gatewayRefId: transaction_code ?? '',
-        paidAmount: Number(total_amount),
-        rawResponse: decoded as Record<string, unknown>,
+        paidAmount: cleanAmount,
+        rawResponse: decoded as unknown as Record<string, unknown>,
         errorMessage: 'Security violation: eSewa HMAC-SHA256 signature verification failed (data tampered)',
       };
     }
@@ -124,8 +142,8 @@ export class EsewaProvider implements IPaymentProvider {
         isVerified: false,
         transactionReference: transaction_uuid,
         gatewayRefId: transaction_code ?? '',
-        paidAmount: Number(total_amount),
-        rawResponse: decoded as Record<string, unknown>,
+        paidAmount: cleanAmount,
+        rawResponse: decoded as unknown as Record<string, unknown>,
         errorMessage: `eSewa transaction not complete (status: ${status})`,
       };
     }
@@ -133,16 +151,17 @@ export class EsewaProvider implements IPaymentProvider {
     // Secondary Server-to-Server Verification
     let serverStatusVerified = true;
     try {
+      const statusAmount = String(total_amount).replace(/,/g, '');
       const statusCheckUrl = `${env.ESEWA_STATUS_URL}?product_code=${encodeURIComponent(
         product_code || env.ESEWA_PRODUCT_CODE
-      )}&total_amount=${encodeURIComponent(formattedAmount)}&transaction_uuid=${encodeURIComponent(
+      )}&total_amount=${encodeURIComponent(statusAmount)}&transaction_uuid=${encodeURIComponent(
         transaction_uuid
       )}`;
 
       const response = await fetch(statusCheckUrl, { method: 'GET' });
       if (response.ok) {
         const statusJson = (await response.json()) as { status?: string };
-        if (statusJson.status !== 'COMPLETE') {
+        if (statusJson.status && statusJson.status !== 'COMPLETE') {
           serverStatusVerified = false;
         }
       }
@@ -154,8 +173,8 @@ export class EsewaProvider implements IPaymentProvider {
       isVerified: serverStatusVerified,
       transactionReference: transaction_uuid,
       gatewayRefId: transaction_code ?? transaction_uuid,
-      paidAmount: Number(total_amount),
-      rawResponse: decoded as Record<string, unknown>,
+      paidAmount: cleanAmount,
+      rawResponse: decoded as unknown as Record<string, unknown>,
       ...(!serverStatusVerified ? { errorMessage: 'eSewa server-to-server status check failed' } : {}),
     };
   }

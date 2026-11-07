@@ -120,6 +120,43 @@ describe('EsewaProvider (ePay v2)', () => {
       expect(verification.isVerified).toBe(false);
       expect(verification.errorMessage).toContain('eSewa transaction not complete');
     });
+    it('should successfully verify when eSewa v2 signed_field_names dynamic HMAC signature is used', async () => {
+      const crypto = await import('node:crypto');
+      const secretKey = '8gBm/:&EnhH.1/q';
+      const signedFieldNames = 'transaction_code,status,total_amount,transaction_uuid,product_code,signed_field_names';
+      const rawMap: Record<string, string> = {
+        transaction_code: 'ESW-REAL-1234',
+        status: 'COMPLETE',
+        total_amount: '600.0',
+        transaction_uuid: transactionUuid,
+        product_code: productCode,
+        signed_field_names: signedFieldNames,
+      };
+
+      const message = signedFieldNames
+        .split(',')
+        .map((f) => `${f}=${rawMap[f]}`)
+        .join(',');
+
+      const signature = crypto.createHmac('sha256', secretKey).update(message).digest('base64');
+      const payloadObj = { ...rawMap, signature };
+      const encodedData = Buffer.from(JSON.stringify(payloadObj)).toString('base64');
+
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ status: 'COMPLETE', ref_id: 'ESW-REAL-1234' }),
+      } as unknown as Response);
+
+      const verification = await provider.verifyPayment({
+        tenantId: 'tenant-1',
+        payload: { data: encodedData },
+      });
+
+      expect(verification.isVerified).toBe(true);
+      expect(verification.transactionReference).toBe(transactionUuid);
+      expect(verification.gatewayRefId).toBe('ESW-REAL-1234');
+      expect(verification.paidAmount).toBe(600);
+    });
   });
 });
 

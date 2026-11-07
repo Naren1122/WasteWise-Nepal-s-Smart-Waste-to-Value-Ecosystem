@@ -25,6 +25,8 @@ interface KhaltiLookupResponse {
   transaction_id?: string;
   fee?: number;
   refunded?: boolean;
+  purchase_order_id?: string;
+  purchase_order_name?: string;
   detail?: string;
 }
 
@@ -79,13 +81,18 @@ export class KhaltiProvider implements IPaymentProvider {
       gateway: this.gateway,
       amount: totalNpr,
       paymentUrl: data.payment_url,
+      gatewayRefId: data.pidx,
     };
   }
 
   public async verifyPayment(
     params: PaymentVerificationParams
   ): Promise<PaymentVerificationResult> {
-    const rawPayload = params.payload as { pidx?: string; transactionReference?: string };
+    const rawPayload = params.payload as {
+      pidx?: string;
+      transactionReference?: string;
+      purchase_order_id?: string;
+    };
     const pidx = rawPayload?.pidx;
 
     if (!pidx || typeof pidx !== 'string') {
@@ -110,10 +117,16 @@ export class KhaltiProvider implements IPaymentProvider {
 
     const data = (await response.json()) as KhaltiLookupResponse;
 
+    const resolvedTxRef =
+      data.purchase_order_id ||
+      rawPayload?.purchase_order_id ||
+      rawPayload?.transactionReference ||
+      '';
+
     if (!response.ok) {
       return {
         isVerified: false,
-        transactionReference: rawPayload.transactionReference ?? '',
+        transactionReference: resolvedTxRef,
         gatewayRefId: pidx,
         paidAmount: 0,
         rawResponse: data as Record<string, unknown>,
@@ -126,7 +139,7 @@ export class KhaltiProvider implements IPaymentProvider {
 
     return {
       isVerified: isCompleted,
-      transactionReference: rawPayload.transactionReference ?? '',
+      transactionReference: resolvedTxRef,
       gatewayRefId: pidx,
       paidAmount: paidNpr,
       rawResponse: data as Record<string, unknown>,

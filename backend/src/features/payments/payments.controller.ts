@@ -43,12 +43,21 @@ export class PaymentsController {
       body
     );
 
-    sendSuccess(res, result.payment, {
-      message: result.isDuplicateCallback
-        ? 'Payment previously verified and settled (duplicate callback acknowledged)'
-        : 'eSewa payment successfully verified and invoice settled',
-      tenantId: req.tenant.id,
-    });
+    sendSuccess(
+      res,
+      {
+        isVerified: true,
+        transactionReference: result.payment.receiptNumber || result.payment.invoiceNumber,
+        paidAmount: result.payment.amount,
+        ...result.payment,
+      },
+      {
+        message: result.isDuplicateCallback
+          ? 'Payment previously verified and settled (duplicate callback acknowledged)'
+          : 'eSewa payment successfully verified and invoice settled',
+        tenantId: req.tenant.id,
+      }
+    );
   };
 
   public verifyKhaltiPayment = async (req: Request, res: Response): Promise<void> => {
@@ -61,12 +70,21 @@ export class PaymentsController {
       body
     );
 
-    sendSuccess(res, result.payment, {
-      message: result.isDuplicateCallback
-        ? 'Payment previously verified and settled (duplicate callback acknowledged)'
-        : 'Khalti payment successfully verified and invoice settled',
-      tenantId: req.tenant.id,
-    });
+    sendSuccess(
+      res,
+      {
+        isVerified: true,
+        transactionReference: result.payment.receiptNumber || result.payment.invoiceNumber,
+        paidAmount: result.payment.amount,
+        ...result.payment,
+      },
+      {
+        message: result.isDuplicateCallback
+          ? 'Payment previously verified and settled (duplicate callback acknowledged)'
+          : 'Khalti payment successfully verified and invoice settled',
+        tenantId: req.tenant.id,
+      }
+    );
   };
 
   public recordCashCounterPayment = async (req: Request, res: Response): Promise<void> => {

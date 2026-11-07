@@ -20,6 +20,7 @@ export interface PaymentInitiationResult {
   amount: number;
   paymentUrl?: string;
   formData?: Record<string, string>;
+  gatewayRefId?: string;
 }
 
 export interface PaymentVerificationParams {
@@ -96,6 +97,12 @@ export interface IPaymentsRepository {
 
   findPaymentById(tenantId: string, paymentId: string): Promise<PaymentWithRelations | null>;
 
+  updateGatewayRefId(
+    tenantId: string,
+    paymentId: string,
+    gatewayRefId: string
+  ): Promise<Payment>;
+
   settlePaymentAtomic(params: SettlePaymentParams): Promise<{
     payment: PaymentWithRelations;
     alreadySettled: boolean;
@@ -103,6 +110,11 @@ export interface IPaymentsRepository {
 
   recordCashPayment(data: CashCounterPaymentData): Promise<PaymentWithRelations>;
 
-  getNextReceiptSequence(tenantId: string, year: number, month: number): Promise<number>;
+  getNextReceiptSequence(
+    tenantId: string,
+    year: number,
+    month: number,
+    tx?: unknown
+  ): Promise<number>;
 }
 
