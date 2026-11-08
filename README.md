@@ -27,7 +27,6 @@
 ## 🌐 Live Deployments
 
 - **Web Application (Frontend)**: [https://waste-wise-nepal-s-smart-waste-to-v.vercel.app](https://waste-wise-nepal-s-smart-waste-to-v.vercel.app/)
-- **REST API & Telemetry Gateway (Backend)**: [https://wastewise-nepal-s-smart-waste-to-value.onrender.com](https://wastewise-nepal-s-smart-waste-to-value.onrender.com)
 - **API Health Check**: [`GET /health`](https://wastewise-nepal-s-smart-waste-to-value.onrender.com/health)
 
 ---
