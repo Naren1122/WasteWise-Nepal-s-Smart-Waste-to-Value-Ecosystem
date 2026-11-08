@@ -22,7 +22,7 @@ import {
 } from '../../shared/errors/app-error.js';
 import { env } from '../../shared/config/env.js';
 import { Role } from '@prisma/client';
-import type { User } from '@prisma/client';
+import type { User, Tenant } from '@prisma/client';
 import { DUMMY_HASH, hashToken, toUserProfileDto } from './auth.utils.js';
 import { uploadToCloudinary } from '../../shared/utils/cloudinary.service.js';
 

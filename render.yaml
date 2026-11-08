@@ -1,0 +1,78 @@
+services:
+  # -------------------------------------------------------------
+  # WasteWise Express Backend Web Service
+  # -------------------------------------------------------------
+  - type: web
+    name: wastewise-backend
+    runtime: node
+    plan: free
+    region: singapore
+    rootDir: backend
+    buildCommand: npm install && npx prisma generate && npm run build
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: JWT_ACCESS_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: JWT_ACCESS_EXPIRES_IN
+        value: 15m
+      - key: JWT_REFRESH_EXPIRES_IN
+        value: 7d
+      - key: CORS_ORIGIN
+        fromService:
+          type: web
+          name: wastewise-frontend
+          property: host
+      - key: APP_FRONTEND_URL
+        fromService:
+          type: web
+          name: wastewise-frontend
+          property: host
+      - key: ESEWA_PRODUCT_CODE
+        value: EPAYTEST
+      - key: ESEWA_SECRET_KEY
+        value: 8gBm/:&EnhH.1/q
+      - key: ESEWA_GATEWAY_URL
+        value: https://rc-epay.esewa.com.np/api/epay/main/v2/form
+      - key: ESEWA_STATUS_URL
+        value: https://rc.esewa.com.np/api/epay/transaction/status/
+      - key: KHALTI_SECRET_KEY
+        value: test_secret_key_7c992762283e4fc2909438d172e259e8
+      - key: KHALTI_GATEWAY_URL
+        value: https://a.khalti.com/api/v2/epayment/
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+
+  # -------------------------------------------------------------
+  # WasteWise Next.js Frontend Web Service
+  # -------------------------------------------------------------
+  - type: web
+    name: wastewise-frontend
+    runtime: node
+    plan: free
+    region: singapore
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NEXT_PUBLIC_API_URL
+        sync: false
+      - key: NEXT_PUBLIC_SOCKET_URL
+        sync: false
+

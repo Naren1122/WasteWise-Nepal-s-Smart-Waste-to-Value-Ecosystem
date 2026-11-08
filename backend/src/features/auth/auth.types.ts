@@ -68,6 +68,8 @@ export interface IAuthRepository {
   findWardById(tenantId: string, wardId: string, db?: DbClient): Promise<Ward | null>;
   findUserByEmailOrPhone(tenantId: string, email: string, phone: string, db?: DbClient): Promise<User | null>;
   findUserByIdentifier(tenantId: string, identifier: string, db?: DbClient): Promise<User | null>;
+  findUserByIdentifierGlobal(identifier: string, db?: DbClient): Promise<(User & { tenant: Tenant }) | null>;
+  findActiveMunicipalTenants(db?: DbClient): Promise<Tenant[]>;
   findUserById(id: string, tenantId?: string, db?: DbClient): Promise<User | null>;
   createUser(data: CreateUserData, db?: DbClient): Promise<User>;
   createTenantWithAdmin(data: CreateTenantWithAdminData): Promise<{ tenant: Tenant; admin: User }>;
