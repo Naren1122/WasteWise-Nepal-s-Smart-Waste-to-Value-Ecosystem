@@ -37,6 +37,8 @@ export const RegisterSchema = z.object({
   email: emailField,
   phone: phoneField,
   password: passwordField,
+  tenantId: z.string().uuid('Invalid municipality UUID format').optional(),
+  subdomain: z.string().optional(),
   wardId: z.string().uuid('Invalid ward UUID format').optional(),
 });
 export type RegisterDto = z.infer<typeof RegisterSchema>;
@@ -45,9 +47,33 @@ export const CreateStaffSchema = z.object({
   fullName: fullNameField,
   email: emailField,
   phone: phoneField,
-  password: passwordField, // staff had a weaker rule than citizens before
-  wardId: z.string().uuid('Invalid ward UUID format').optional(),
+  password: passwordField,
+  wardId: z
+    .string()
+    .uuid('Invalid ward UUID format')
+    .or(z.literal(''))
+    .nullable()
+    .optional()
+    .transform((v) => (v === '' || v === undefined ? null : v)),
   role: z.enum([Role.WARD_OFFICER, Role.DISPATCHER, Role.DRIVER, Role.FIELD_WORKER]),
+  photo: z
+    .string()
+    .trim()
+    .refine(
+      (val) => val === '' || val.startsWith('data:image/') || val.startsWith('http://') || val.startsWith('https://'),
+      'Photo must be a valid image data URI or URL'
+    )
+    .nullable()
+    .optional()
+    .transform((v) => (v === '' || v === undefined ? null : v)),
+  age: z
+    .union([
+      z.coerce.number().int('Age must be a whole number').min(18, 'Driver/staff must be at least 18 years old').max(75, 'Age must be 75 or below'),
+      z.literal(''),
+    ])
+    .nullable()
+    .optional()
+    .transform((v) => (v === '' || v === undefined ? null : v)),
 });
 export type CreateStaffDto = z.infer<typeof CreateStaffSchema>;
 

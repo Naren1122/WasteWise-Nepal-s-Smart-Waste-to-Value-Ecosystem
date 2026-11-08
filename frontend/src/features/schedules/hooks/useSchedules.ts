@@ -1,26 +1,26 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/shared/lib/api-client';
+import { toast } from '@/shared/components/ui/sonner';
 import type {
   CollectionSchedule,
   ServicePlan,
-  BulkyWasteRequest,
-  BulkyWasteStatus,
-  CreateBulkyRequestInput,
-  QuoteBulkyRequestInput,
-  ScheduleBulkyRequestInput,
-  RejectBulkyRequestInput,
   CreateServicePlanInput,
   CreateSubscriptionInput,
   CreateCollectionScheduleInput,
   GeneratePickupsInput,
 } from '../types/schedules.types';
 
-export function useCollectionSchedules(wardId?: string) {
+export * from './useBulkyWaste';
+
+export function useCollectionSchedules(wardId?: string, dayOfWeek?: number) {
   return useQuery<CollectionSchedule[]>({
-    queryKey: ['schedules', wardId],
+    queryKey: ['schedules', wardId, dayOfWeek],
     queryFn: async (): Promise<CollectionSchedule[]> => {
-      const url = wardId && wardId !== 'ALL' ? `/schedules?wardId=${wardId}` : '/schedules';
-      const response = await apiClient.get<CollectionSchedule[]>(url);
+      const params = new URLSearchParams();
+      if (wardId && wardId !== 'ALL') params.append('wardId', wardId);
+      if (dayOfWeek !== undefined) params.append('dayOfWeek', dayOfWeek.toString());
+      const query = params.toString() ? `?${params.toString()}` : '';
+      const response = await apiClient.get<CollectionSchedule[]>(`/schedules${query}`);
       return response.data || [];
     },
   });
@@ -36,117 +36,22 @@ export function useServicePlans() {
   });
 }
 
-export interface BulkyFilterParams {
-  wardId?: string;
-  status?: BulkyWasteStatus;
-}
-
-export function useBulkyWasteRequests(filters?: BulkyFilterParams) {
-  return useQuery<BulkyWasteRequest[]>({
-    queryKey: ['bulky-waste', filters?.wardId, filters?.status],
-    queryFn: async (): Promise<BulkyWasteRequest[]> => {
-      const params = new URLSearchParams();
-      if (filters?.wardId && filters.wardId !== 'ALL') params.append('wardId', filters.wardId);
-      if (filters?.status) params.append('status', filters.status);
-      const query = params.toString() ? `?${params.toString()}` : '';
-      const response = await apiClient.get<BulkyWasteRequest[]>(`/bulky-waste${query}`);
-      return response.data || [];
-    },
-  });
-}
-
-export function useCreateBulkyWasteRequest() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async (data: CreateBulkyRequestInput) => {
-      return apiClient.post<BulkyWasteRequest>('/bulky-waste', data);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['bulky-waste'] });
-    },
-  });
-}
-
-export function useQuoteBulkyRequest() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async ({ requestId, data }: { requestId: string; data: QuoteBulkyRequestInput }) => {
-      return apiClient.patch<BulkyWasteRequest>(`/bulky-waste/${requestId}/quote`, data);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['bulky-waste'] });
-    },
-  });
-}
-
-export function useApproveBulkyQuote() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async (requestId: string) => {
-      return apiClient.post<BulkyWasteRequest>(`/bulky-waste/${requestId}/approve`, {});
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['bulky-waste'] });
-    },
-  });
-}
-
-export function useScheduleBulkyPickup() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async ({ requestId, data }: { requestId: string; data: ScheduleBulkyRequestInput }) => {
-      return apiClient.patch<BulkyWasteRequest>(`/bulky-waste/${requestId}/schedule`, data);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['bulky-waste'] });
-    },
-  });
-}
-
-export function useRejectBulkyRequest() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async ({ requestId, data }: { requestId: string; data: RejectBulkyRequestInput }) => {
-      return apiClient.post<BulkyWasteRequest>(`/bulky-waste/${requestId}/reject`, data);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['bulky-waste'] });
-    },
-  });
-}
-
-export function useCompleteBulkyRequest() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async (requestId: string) => {
-      return apiClient.post<BulkyWasteRequest>(`/bulky-waste/${requestId}/complete`, {});
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['bulky-waste'] });
-    },
-  });
-}
-
-export function useCancelBulkyRequest() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async (requestId: string) => {
-      return apiClient.post<BulkyWasteRequest>(`/bulky-waste/${requestId}/cancel`, {});
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['bulky-waste'] });
-    },
-  });
-}
-
 export function useCreateServicePlan() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (data: CreateServicePlanInput) => {
       return apiClient.post<ServicePlan>('/plans', data);
     },
-    onSuccess: () => {
+    onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ['service-plans'] });
+      toast.success('Service plan created', {
+        description: `Plan "${res.data?.name ?? 'New Plan'}" is now available.`,
+      });
+    },
+    onError: (err: unknown) => {
+      toast.error('Failed to create plan', {
+        description: err instanceof Error ? err.message : 'Please check required fields.',
+      });
     },
   });
 }
@@ -159,6 +64,14 @@ export function useDeleteServicePlan() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['service-plans'] });
+      toast.success('Service plan deleted', {
+        description: 'The service plan has been removed.',
+      });
+    },
+    onError: (err: unknown) => {
+      toast.error('Failed to delete plan', {
+        description: err instanceof Error ? err.message : 'Plan may have active property subscriptions.',
+      });
     },
   });
 }
@@ -169,8 +82,16 @@ export function useToggleServicePlanStatus() {
     mutationFn: async ({ planId, isActive }: { planId: string; isActive: boolean }) => {
       return apiClient.patch<ServicePlan>(`/plans/${planId}`, { isActive });
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['service-plans'] });
+      toast.success('Service plan status updated', {
+        description: `Plan is now ${variables.isActive ? 'active' : 'inactive'}.`,
+      });
+    },
+    onError: (err: unknown) => {
+      toast.error('Failed to update status', {
+        description: err instanceof Error ? err.message : 'Please try again.',
+      });
     },
   });
 }
@@ -184,6 +105,14 @@ export function useCreateSubscription() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['service-plans'] });
       queryClient.invalidateQueries({ queryKey: ['properties'] });
+      toast.success('Property subscribed', {
+        description: 'Service plan assigned to property successfully.',
+      });
+    },
+    onError: (err: unknown) => {
+      toast.error('Subscription failed', {
+        description: err instanceof Error ? err.message : 'Please try again.',
+      });
     },
   });
 }
@@ -196,6 +125,14 @@ export function useCreateScheduleRule() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['schedules'] });
+      toast.success('Schedule rule created', {
+        description: 'Waste collection schedule rule has been saved.',
+      });
+    },
+    onError: (err: unknown) => {
+      toast.error('Failed to save schedule rule', {
+        description: err instanceof Error ? err.message : 'Please check schedule times.',
+      });
     },
   });
 }
@@ -206,9 +143,17 @@ export function useGenerateDailyPickups() {
     mutationFn: async (data: GeneratePickupsInput) => {
       return apiClient.post<{ message: string; generatedCount: number }>('/schedules/generate', data);
     },
-    onSuccess: () => {
+    onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ['schedules'] });
+      const count = res.data?.generatedCount ?? 0;
+      toast.success('Pickups generated', {
+        description: `Successfully generated ${count} daily collection manifest${count === 1 ? '' : 's'}.`,
+      });
+    },
+    onError: (err: unknown) => {
+      toast.error('Generation failed', {
+        description: err instanceof Error ? err.message : 'Please try again.',
+      });
     },
   });
 }
-

@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/shared/lib/api-client';
+import { toast } from '@/shared/components/ui/sonner';
 import type {
   InvoiceDetailDto,
   InvoiceFilterQuery,
@@ -118,9 +119,18 @@ export function useGenerateMonthlyInvoices() {
       );
       return res.data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['all-invoices'] });
       queryClient.invalidateQueries({ queryKey: ['my-invoices'] });
+      const count = data?.invoicesCreated ?? 0;
+      toast.success('Invoices generated', {
+        description: `Successfully billed ${count} propert${count === 1 ? 'y' : 'ies'}.`,
+      });
+    },
+    onError: (err: unknown) => {
+      toast.error('Invoice generation failed', {
+        description: err instanceof Error ? err.message : 'Please try again later.',
+      });
     },
   });
 }
@@ -136,8 +146,16 @@ export function useCreateCustomInvoice() {
       const res = await apiClient.post<InvoiceDetailDto>('/invoices/custom', dto);
       return res.data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['all-invoices'] });
+      toast.success('Custom invoice created', {
+        description: `Invoice #${data?.invoiceNumber ?? ''} created for NPR ${(data?.totalAmount ?? 0).toLocaleString()}.`,
+      });
+    },
+    onError: (err: unknown) => {
+      toast.error('Failed to create invoice', {
+        description: err instanceof Error ? err.message : 'Please check required fields.',
+      });
     },
   });
 }

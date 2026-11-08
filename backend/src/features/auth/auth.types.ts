@@ -11,6 +11,8 @@ export interface UserProfileDto {
   phone: string;
   role: Role;
   status: UserStatus;
+  photoUrl?: string | null;
+  age?: number | null;
   createdAt: Date;
 }
 
@@ -38,6 +40,8 @@ export interface CreateUserData {
   phone: string;
   passwordHash: string;
   role: Role;
+  photoUrl?: string | null | undefined;
+  age?: number | null | undefined;
 }
 
 export interface CreateTenantWithAdminData {

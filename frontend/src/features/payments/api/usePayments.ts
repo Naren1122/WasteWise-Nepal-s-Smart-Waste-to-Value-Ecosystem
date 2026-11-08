@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/shared/lib/api-client';
+import { toast } from '@/shared/components/ui/sonner';
 import type {
   PaymentInitiateDto,
   PaymentInitiationResult,
@@ -36,10 +37,18 @@ export function useVerifyEsewaPayment() {
       );
       return res.data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['my-invoices'] });
       queryClient.invalidateQueries({ queryKey: ['all-invoices'] });
       queryClient.invalidateQueries({ queryKey: ['invoice-details'] });
+      toast.success('Payment verified via eSewa', {
+        description: `Txn Ref: ${data.transactionReference} | Quoted: NPR ${data.paidAmount.toLocaleString()}.`,
+      });
+    },
+    onError: (err: unknown) => {
+      toast.error('Payment verification failed', {
+        description: err instanceof Error ? err.message : 'Please contact support.',
+      });
     },
   });
 }
@@ -58,10 +67,18 @@ export function useVerifyKhaltiPayment() {
       );
       return res.data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['my-invoices'] });
       queryClient.invalidateQueries({ queryKey: ['all-invoices'] });
       queryClient.invalidateQueries({ queryKey: ['invoice-details'] });
+      toast.success('Payment verified via Khalti', {
+        description: `Txn Ref: ${data.transactionReference} | Quoted: NPR ${data.paidAmount.toLocaleString()}.`,
+      });
+    },
+    onError: (err: unknown) => {
+      toast.error('Payment verification failed', {
+        description: err instanceof Error ? err.message : 'Please contact support.',
+      });
     },
   });
 }
@@ -77,10 +94,18 @@ export function useRecordCashPayment() {
       const res = await apiClient.post<PaymentReceiptDto>('/payments/cash-counter', dto);
       return res.data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['my-invoices'] });
       queryClient.invalidateQueries({ queryKey: ['all-invoices'] });
       queryClient.invalidateQueries({ queryKey: ['invoice-details'] });
+      toast.success('Cash payment recorded', {
+        description: `Receipt #${data.receiptNumber} issued for NPR ${(data.amount ?? 0).toLocaleString()}.`,
+      });
+    },
+    onError: (err: unknown) => {
+      toast.error('Failed to record cash payment', {
+        description: err instanceof Error ? err.message : 'Please try again.',
+      });
     },
   });
 }

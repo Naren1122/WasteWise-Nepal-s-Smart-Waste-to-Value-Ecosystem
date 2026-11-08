@@ -15,38 +15,51 @@ export class AuthController {
   constructor(private readonly authService: AuthService = new AuthService()) {}
 
   public register = async (req: Request, res: Response): Promise<void> => {
-    if (!req.tenant) {
-      throw new BadRequestError('Tenant context required: Pass X-Tenant-ID or X-Tenant-Subdomain header');
+    const validatedData = RegisterSchema.parse(req.body);
+    let tenantId = req.tenant?.id || validatedData.tenantId;
+
+    if (!tenantId && validatedData.subdomain) {
+      const tenant = await this.authService.findTenantBySubdomain(validatedData.subdomain);
+      tenantId = tenant?.id;
     }
 
-    const validatedData = RegisterSchema.parse(req.body);
-    const result = await this.authService.register(req.tenant.id, validatedData);
+    if (!tenantId) {
+      throw new BadRequestError('Municipality is required for citizen registration. Please select a municipality.');
+    }
+
+    const result = await this.authService.register(tenantId, validatedData);
 
     const response: ApiResponse<AuthResponseDto> = {
       success: true,
       data: result,
       message: 'User registered successfully',
-      meta: { timestamp: new Date().toISOString(), tenantId: req.tenant.id },
+      meta: { timestamp: new Date().toISOString(), tenantId },
     };
 
     res.status(201).json(response);
   };
 
   public login = async (req: Request, res: Response): Promise<void> => {
-    if (!req.tenant) {
-      throw new BadRequestError('Tenant context required: Pass X-Tenant-ID or X-Tenant-Subdomain header');
-    }
-
     const validatedData = LoginSchema.parse(req.body);
-    const result = await this.authService.login(req.tenant.id, validatedData);
+    const result = await this.authService.login(req.tenant?.id, validatedData);
 
     const response: ApiResponse<AuthResponseDto> = {
       success: true,
       data: result,
       message: 'Logged in successfully',
-      meta: { timestamp: new Date().toISOString(), tenantId: req.tenant.id },
+      meta: { timestamp: new Date().toISOString(), tenantId: result.tenant.id },
     };
 
+    res.status(200).json(response);
+  };
+
+  public listPublicTenants = async (_req: Request, res: Response): Promise<void> => {
+    const tenants = await this.authService.listPublicTenants();
+    const response: ApiResponse<Array<{ id: string; name: string; subdomain: string; district: string; province: string }>> = {
+      success: true,
+      data: tenants,
+      message: 'Active municipalities retrieved',
+    };
     res.status(200).json(response);
   };
 

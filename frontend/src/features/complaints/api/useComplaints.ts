@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/shared/lib/api-client';
+import { toast } from '@/shared/components/ui/sonner';
 import type {
   ComplaintDetailDto,
   ComplaintSummaryDto,
@@ -87,8 +88,22 @@ export function useLodgeComplaint() {
       const res = await apiClient.post<LodgeComplaintResult>('/complaints', payload);
       return (res as unknown as { data: LodgeComplaintResult }).data ?? res;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       void queryClient.invalidateQueries({ queryKey: ['complaints'] });
+      if (data.isDuplicate) {
+        toast.info('Similar complaint already logged', {
+          description: `Merged into existing Ticket #${data.parentTicketNumber}.`,
+        });
+      } else {
+        toast.success('Grievance registered', {
+          description: `Ticket #${data.complaint.ticketNumber} lodged successfully.`,
+        });
+      }
+    },
+    onError: (err) => {
+      toast.error('Failed to lodge grievance', {
+        description: err.message || 'Please check all required fields.',
+      });
     },
   });
 }
@@ -100,9 +115,17 @@ export function useTriageComplaint() {
       const res = await apiClient.patch<ComplaintDetailDto>(`/complaints/${id}/triage`, payload);
       return (res as unknown as { data: ComplaintDetailDto }).data ?? res;
     },
-    onSuccess: (_, variables) => {
+    onSuccess: (data, variables) => {
       void queryClient.invalidateQueries({ queryKey: ['complaints'] });
       void queryClient.invalidateQueries({ queryKey: ['complaint', variables.id] });
+      toast.success('Complaint triaged', {
+        description: `Ticket #${data.ticketNumber} priority & assigned officer updated.`,
+      });
+    },
+    onError: (err) => {
+      toast.error('Triage failed', {
+        description: err.message || 'Could not update complaint triage.',
+      });
     },
   });
 }
@@ -114,9 +137,17 @@ export function useResolveComplaint() {
       const res = await apiClient.patch<ComplaintDetailDto>(`/complaints/${id}/resolve`, payload);
       return (res as unknown as { data: ComplaintDetailDto }).data ?? res;
     },
-    onSuccess: (_, variables) => {
+    onSuccess: (data, variables) => {
       void queryClient.invalidateQueries({ queryKey: ['complaints'] });
       void queryClient.invalidateQueries({ queryKey: ['complaint', variables.id] });
+      toast.success('Complaint resolved', {
+        description: `Ticket #${data.ticketNumber} has been resolved.`,
+      });
+    },
+    onError: (err) => {
+      toast.error('Resolution failed', {
+        description: err.message || 'Could not resolve complaint.',
+      });
     },
   });
 }
@@ -128,9 +159,17 @@ export function useReopenComplaint() {
       const res = await apiClient.post<ComplaintDetailDto>(`/complaints/${id}/reopen`, payload);
       return (res as unknown as { data: ComplaintDetailDto }).data ?? res;
     },
-    onSuccess: (_, variables) => {
+    onSuccess: (data, variables) => {
       void queryClient.invalidateQueries({ queryKey: ['complaints'] });
       void queryClient.invalidateQueries({ queryKey: ['complaint', variables.id] });
+      toast.success('Complaint reopened', {
+        description: `Ticket #${data.ticketNumber} reopened for further investigation.`,
+      });
+    },
+    onError: (err) => {
+      toast.error('Failed to reopen complaint', {
+        description: err.message || 'Could not reopen complaint.',
+      });
     },
   });
 }
@@ -144,6 +183,14 @@ export function useSubmitFeedback() {
     },
     onSuccess: (_, variables) => {
       void queryClient.invalidateQueries({ queryKey: ['complaint', variables.id] });
+      toast.success('Feedback submitted', {
+        description: 'Thank you for rating municipal resolution services.',
+      });
+    },
+    onError: (err) => {
+      toast.error('Failed to submit feedback', {
+        description: err.message || 'Please try again later.',
+      });
     },
   });
 }

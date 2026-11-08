@@ -9,24 +9,24 @@ import { Role } from '@prisma/client';
 export const paymentsRouter = Router();
 const controller = new PaymentsController();
 
-// All payments require tenant context
+// Tenant context middleware populates req.tenant when passed via header/subdomain
 paymentsRouter.use(tenantContextMiddleware);
-paymentsRouter.use(requireTenant);
 
 // Initiate payment (eSewa form post payload or Khalti checkout session)
 paymentsRouter.post(
   '/initiate',
+  requireTenant,
   authGuard,
   asyncHandler(controller.initiatePayment)
 );
 
-// eSewa server/client return callback verification
+// eSewa server/client return callback verification (resolves tenant via header or transactionRef)
 paymentsRouter.post(
   '/esewa/verify',
   asyncHandler(controller.verifyEsewaPayment)
 );
 
-// Khalti server/client return callback verification
+// Khalti server/client return callback verification (resolves tenant via header or transactionRef)
 paymentsRouter.post(
   '/khalti/verify',
   asyncHandler(controller.verifyKhaltiPayment)
@@ -35,6 +35,7 @@ paymentsRouter.post(
 // Ward office cash counter voucher settlement
 paymentsRouter.post(
   '/cash-counter',
+  requireTenant,
   authGuard,
   requireRole([Role.SUPER_ADMIN, Role.MUNICIPAL_ADMIN, Role.DISPATCHER, Role.WARD_OFFICER]),
   asyncHandler(controller.recordCashCounterPayment)
@@ -43,6 +44,7 @@ paymentsRouter.post(
 // View / download payment receipt
 paymentsRouter.get(
   '/receipt/:paymentId',
+  requireTenant,
   authGuard,
   asyncHandler(controller.getReceipt)
 );

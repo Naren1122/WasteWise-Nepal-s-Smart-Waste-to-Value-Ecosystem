@@ -59,6 +59,29 @@ export class AuthRepository implements IAuthRepository {
     });
   }
 
+  public async findUserByIdentifierGlobal(
+    identifier: string,
+    db: DbClient = prisma
+  ): Promise<(User & { tenant: Tenant }) | null> {
+    return db.user.findFirst({
+      where: {
+        OR: [{ email: identifier }, { phone: identifier }],
+        tenant: { isActive: true },
+      },
+      include: { tenant: true },
+    });
+  }
+
+  public async findActiveMunicipalTenants(db: DbClient = prisma): Promise<Tenant[]> {
+    return db.tenant.findMany({
+      where: {
+        isActive: true,
+        subdomain: { not: 'admin' },
+      },
+      orderBy: { name: 'asc' },
+    });
+  }
+
   public async findUserById(
     id: string,
     tenantId?: string,
@@ -82,6 +105,8 @@ export class AuthRepository implements IAuthRepository {
         phone: data.phone,
         passwordHash: data.passwordHash,
         role: data.role,
+        photoUrl: data.photoUrl ?? null,
+        age: data.age ?? null,
       },
     });
   }

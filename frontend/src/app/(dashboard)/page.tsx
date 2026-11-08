@@ -1,19 +1,21 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/shared/stores/auth.store';
 import { PageHeader } from '@/shared/components/layout/PageHeader';
 import { Button } from '@/shared/components/ui/button';
 import { Badge } from '@/shared/components/ui/badge';
-import { Plus, RefreshCw } from 'lucide-react';
+import { Plus, RefreshCw, Building2 } from 'lucide-react';
 import { WelcomeBanner } from '@/features/dashboard/components/WelcomeBanner';
 import { KpiMetricsGrid } from '@/features/dashboard/components/KpiMetricsGrid';
 import { ActionHubCards } from '@/features/dashboard/components/ActionHubCards';
 import { LiveFleetStatusCard } from '@/features/dashboard/components/LiveFleetStatusCard';
+import { OnboardMunicipalityModal } from '@/features/admin/components/OnboardMunicipalityModal';
 
 export default function DashboardOverviewPage() {
   const { user, tenantSubdomain } = useAuth();
+  const [isOnboardOpen, setIsOnboardOpen] = useState(false);
 
   const formatRole = (role?: string) => {
     switch (role) {
@@ -53,13 +55,23 @@ export default function DashboardOverviewPage() {
               <span className="hidden sm:inline">Refresh</span>
             </Button>
 
-            <Button asChild variant="primary" className="h-10 px-3 sm:px-4 text-[14px] font-semibold rounded-lg shadow-xs">
-              <Link href="/properties/register" className="inline-flex items-center gap-2">
-                <Plus className="w-4 h-4" />
-                <span className="hidden md:inline">Register New Property</span>
-                <span className="md:hidden">Register</span>
-              </Link>
-            </Button>
+            {user?.role === 'SUPER_ADMIN' ? (
+              <Button
+                onClick={() => setIsOnboardOpen(true)}
+                className="h-10 px-3 sm:px-4 text-[14px] font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs inline-flex items-center gap-2"
+              >
+                <Building2 className="w-4 h-4" />
+                <span>Onboard Municipality</span>
+              </Button>
+            ) : (
+              <Button asChild variant="primary" className="h-10 px-3 sm:px-4 text-[14px] font-semibold rounded-lg shadow-xs">
+                <Link href="/properties/register" className="inline-flex items-center gap-2">
+                  <Plus className="w-4 h-4" />
+                  <span className="hidden md:inline">Register New Property</span>
+                  <span className="md:hidden">Register</span>
+                </Link>
+              </Button>
+            )}
           </div>
         }
       />
@@ -84,6 +96,11 @@ export default function DashboardOverviewPage() {
         {/* Live Fleet Dispatch & Ward Status (Kathmandu Metro Telemetry) */}
         <LiveFleetStatusCard />
       </main>
+
+      <OnboardMunicipalityModal
+        open={isOnboardOpen}
+        onOpenChange={setIsOnboardOpen}
+      />
     </div>
   );
 }

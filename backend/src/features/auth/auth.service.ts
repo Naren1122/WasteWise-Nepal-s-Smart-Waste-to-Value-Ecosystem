@@ -24,6 +24,7 @@ import { env } from '../../shared/config/env.js';
 import { Role } from '@prisma/client';
 import type { User } from '@prisma/client';
 import { DUMMY_HASH, hashToken, toUserProfileDto } from './auth.utils.js';
+import { uploadToCloudinary } from '../../shared/utils/cloudinary.service.js';
 
 export class AuthService {
   constructor(private readonly repo: IAuthRepository = new AuthRepository()) {}
@@ -84,30 +85,51 @@ export class AuthService {
       throw new ConflictError('Staff member with this email or phone number already exists');
     }
 
+    let photoUrl: string | null = null;
+    if (dto.photo) {
+      if (dto.photo.startsWith('data:image/')) {
+        const uploadResult = await uploadToCloudinary(dto.photo, 'wastewise/drivers');
+        photoUrl = uploadResult?.secureUrl ?? null;
+      } else {
+        photoUrl = dto.photo;
+      }
+    }
+
     const passwordHash = await bcrypt.hash(dto.password, 12);
     const staff = await this.repo.createUser({
       tenantId,
-      wardId: dto.wardId,
+      wardId: dto.wardId ?? undefined,
       fullName: dto.fullName,
       email: dto.email,
       phone: dto.phone,
       passwordHash,
       role: dto.role,
+      photoUrl,
+      age: dto.age ?? null,
     });
 
     return toUserProfileDto(staff);
   }
 
-  public async login(tenantId: string, dto: LoginDto): Promise<AuthResponseDto> {
-    const tenant = await this.repo.findTenantById(tenantId);
-    if (!tenant || !tenant.isActive) {
-      throw new NotFoundError('Tenant', tenantId);
+  public async login(tenantId: string | undefined, dto: LoginDto): Promise<AuthResponseDto> {
+    let tenant: Tenant | null = null;
+    let user: (User & { tenant?: Tenant }) | null = null;
+
+    if (tenantId) {
+      tenant = await this.repo.findTenantById(tenantId);
+      if (!tenant || !tenant.isActive) {
+        throw new NotFoundError('Tenant', tenantId);
+      }
+      user = await this.repo.findUserByIdentifier(tenantId, dto.identifier);
+    } else {
+      user = await this.repo.findUserByIdentifierGlobal(dto.identifier);
+      if (user?.tenant) {
+        tenant = user.tenant;
+      }
     }
 
-    const user = await this.repo.findUserByIdentifier(tenantId, dto.identifier);
-
     // Security Fix: Prevent timing attacks / user enumeration by running comparison on dummy hash
-    if (!user) {
+    if (!user || !tenant || !tenant.isActive) {
       await bcrypt.compare(dto.password, DUMMY_HASH);
       throw new UnauthorizedError('Invalid email/phone or password');
     }
@@ -129,6 +151,21 @@ export class AuthService {
       tokens,
       tenant: { id: tenant.id, name: tenant.name, subdomain: tenant.subdomain },
     };
+  }
+
+  public async findTenantBySubdomain(subdomain: string) {
+    return this.repo.findTenantBySubdomain(subdomain);
+  }
+
+  public async listPublicTenants(): Promise<Array<{ id: string; name: string; subdomain: string; district: string; province: string }>> {
+    const tenants = await this.repo.findActiveMunicipalTenants();
+    return tenants.map((t) => ({
+      id: t.id,
+      name: t.name,
+      subdomain: t.subdomain,
+      district: t.district,
+      province: t.province,
+    }));
   }
 
   public async refreshTokens(rawRefreshToken: string): Promise<AuthTokens> {

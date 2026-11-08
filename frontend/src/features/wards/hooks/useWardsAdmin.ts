@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/shared/lib/api-client';
+import { toast } from '@/shared/components/ui/sonner';
 
 export interface WardAdminItem {
   id: string;
@@ -72,9 +73,17 @@ export function useCreateWard() {
       const response = await apiClient.post<WardAdminItem>('/wards', input);
       return response.data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['admin-wards'] });
       queryClient.invalidateQueries({ queryKey: ['wards'] });
+      toast.success('Ward created successfully', {
+        description: `Ward #${data?.wardNumber ?? ''} has been registered.`,
+      });
+    },
+    onError: (err: unknown) => {
+      toast.error('Failed to create ward', {
+        description: err instanceof Error ? err.message : 'Please check input data.',
+      });
     },
   });
 }
@@ -88,10 +97,18 @@ export function useCreateZone() {
       const response = await apiClient.post<ZoneAdminItem>(`/wards/${wardId}/zones`, input);
       return response.data;
     },
-    onSuccess: (_, variables) => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['admin-zones', variables.wardId] });
       queryClient.invalidateQueries({ queryKey: ['admin-wards'] });
       queryClient.invalidateQueries({ queryKey: ['zones', variables.wardId] });
+      toast.success('Service zone created successfully', {
+        description: `Zone "${data?.name ?? ''}" added to Ward #${variables.wardId}.`,
+      });
+    },
+    onError: (err: unknown) => {
+      toast.error('Failed to create service zone', {
+        description: err instanceof Error ? err.message : 'Please check input data.',
+      });
     },
   });
 }

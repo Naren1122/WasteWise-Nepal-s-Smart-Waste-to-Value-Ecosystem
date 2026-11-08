@@ -34,11 +34,26 @@ export class PaymentsController {
   };
 
   public verifyEsewaPayment = async (req: Request, res: Response): Promise<void> => {
-    if (!req.tenant) throw new UnauthorizedError('Tenant context required');
-
     const body = EsewaCallbackSchema.parse(req.body);
+    let tenantId = req.tenant?.id;
+
+    if (!tenantId && body.data) {
+      try {
+        const decodedJson = Buffer.from(body.data, 'base64').toString('utf-8');
+        const decoded = JSON.parse(decodedJson) as { transaction_uuid?: string };
+        if (decoded.transaction_uuid) {
+          const payment = await this.service.findPaymentByReferenceGlobal(decoded.transaction_uuid);
+          tenantId = payment?.tenantId;
+        }
+      } catch {
+        // Fallback to error check
+      }
+    }
+
+    if (!tenantId) throw new UnauthorizedError('Tenant context required');
+
     const result = await this.service.verifyAndSettle(
-      req.tenant.id,
+      tenantId,
       PaymentGateway.ESEWA,
       body
     );
@@ -55,17 +70,27 @@ export class PaymentsController {
         message: result.isDuplicateCallback
           ? 'Payment previously verified and settled (duplicate callback acknowledged)'
           : 'eSewa payment successfully verified and invoice settled',
-        tenantId: req.tenant.id,
+        tenantId,
       }
     );
   };
 
   public verifyKhaltiPayment = async (req: Request, res: Response): Promise<void> => {
-    if (!req.tenant) throw new UnauthorizedError('Tenant context required');
-
     const body = KhaltiCallbackSchema.parse(req.body);
+    let tenantId = req.tenant?.id;
+
+    if (!tenantId) {
+      const ref = body.purchase_order_id || body.transactionReference || body.pidx;
+      if (ref) {
+        const payment = await this.service.findPaymentByReferenceGlobal(ref);
+        tenantId = payment?.tenantId;
+      }
+    }
+
+    if (!tenantId) throw new UnauthorizedError('Tenant context required');
+
     const result = await this.service.verifyAndSettle(
-      req.tenant.id,
+      tenantId,
       PaymentGateway.KHALTI,
       body
     );
@@ -82,7 +107,7 @@ export class PaymentsController {
         message: result.isDuplicateCallback
           ? 'Payment previously verified and settled (duplicate callback acknowledged)'
           : 'Khalti payment successfully verified and invoice settled',
-        tenantId: req.tenant.id,
+        tenantId,
       }
     );
   };

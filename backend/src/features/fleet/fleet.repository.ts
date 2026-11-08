@@ -17,6 +17,8 @@ const vehicleInclude = {
       fullName: true,
       phone: true,
       email: true,
+      photoUrl: true,
+      age: true,
     },
   },
   _count: {
@@ -135,6 +137,8 @@ export class FleetRepository implements IFleetRepository {
         fullName: true,
         phone: true,
         email: true,
+        photoUrl: true,
+        age: true,
       },
       orderBy: { fullName: 'asc' },
     });

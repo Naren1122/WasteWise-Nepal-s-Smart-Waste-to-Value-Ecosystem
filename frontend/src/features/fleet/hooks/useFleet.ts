@@ -1,8 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/shared/lib/api-client';
+import { toast } from '@/shared/components/ui/sonner';
 import type {
   Vehicle,
   DriverSummary,
+  CreateDriverInput,
+  CreateStaffInput,
   CreateVehicleInput,
   UpdateVehicleInput,
   VehicleFilterParams,
@@ -65,8 +68,16 @@ export function useCreateVehicle() {
     mutationFn: async (data: CreateVehicleInput) => {
       return apiClient.post<Vehicle>('/fleet', data);
     },
-    onSuccess: () => {
+    onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ['fleet'] });
+      toast.success('Vehicle registered successfully', {
+        description: `Plate: ${res.data?.registrationNo || 'New Vehicle'} is now in the municipal fleet.`,
+      });
+    },
+    onError: (err: unknown) => {
+      toast.error('Failed to register vehicle', {
+        description: err instanceof Error ? err.message : 'Please check the provided inputs.',
+      });
     },
   });
 }
@@ -77,8 +88,16 @@ export function useUpdateVehicle() {
     mutationFn: async ({ id, data }: { id: string; data: UpdateVehicleInput }) => {
       return apiClient.patch<Vehicle>(`/fleet/${id}`, data);
     },
-    onSuccess: () => {
+    onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ['fleet'] });
+      toast.success('Vehicle updated successfully', {
+        description: `Vehicle status: ${res.data?.status || 'Updated'}.`,
+      });
+    },
+    onError: (err: unknown) => {
+      toast.error('Failed to update vehicle', {
+        description: err instanceof Error ? err.message : 'Please try again later.',
+      });
     },
   });
 }
@@ -91,6 +110,41 @@ export function useDeleteVehicle() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['fleet'] });
+      toast.success('Vehicle removed', {
+        description: 'The vehicle was successfully deleted from the fleet.',
+      });
+    },
+    onError: (err: unknown) => {
+      toast.error('Failed to delete vehicle', {
+        description: err instanceof Error ? err.message : 'Vehicle may have active assigned routes.',
+      });
     },
   });
 }
+
+export function useCreateStaff() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: CreateStaffInput) => {
+      return apiClient.post('/auth/staff', {
+        ...data,
+        role: data.role || 'DRIVER',
+      });
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['fleet-drivers'] });
+      queryClient.invalidateQueries({ queryKey: ['wards'] });
+      const roleLabel = (variables.role || 'DRIVER').replace('_', ' ');
+      toast.success('Personnel registered successfully', {
+        description: `${variables.fullName} has been registered as ${roleLabel}.`,
+      });
+    },
+    onError: (err: unknown) => {
+      toast.error('Failed to register personnel', {
+        description: err instanceof Error ? err.message : 'Please verify details and try again.',
+      });
+    },
+  });
+}
+
+export const useCreateDriver = useCreateStaff;

@@ -9,6 +9,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/shared/components/ui
 import { useVehicles } from '@/features/fleet/hooks/useFleet';
 import { FleetTable } from '@/features/fleet/components/FleetTable';
 import { RegisterVehicleModal } from '@/features/fleet/components/RegisterVehicleModal';
+import { CreateDriverModal } from '@/features/fleet/components/CreateDriverModal';
+import { FleetKpiCards } from '@/features/fleet/components/FleetKpiCards';
 import { useRoutes } from '@/features/routes/hooks/useRoutes';
 import { DispatchRoutesList } from '@/features/routes/components/DispatchRoutesList';
 import { GenerateRouteModal } from '@/features/routes/components/GenerateRouteModal';
@@ -17,17 +19,16 @@ import type { VehicleStatus, VehicleType } from '@/features/fleet/types/fleet.ty
 import {
   Truck,
   Plus,
+  UserPlus,
   RefreshCw,
   Search,
-  CheckCircle2,
-  Navigation,
-  Wrench,
   Route as RouteIcon,
 } from 'lucide-react';
 
 export default function FleetManagementPage() {
   const [activeTab, setActiveTab] = useState<'fleet' | 'routes'>('fleet');
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
+  const [isCreateDriverOpen, setIsCreateDriverOpen] = useState(false);
   const [isGenerateRouteOpen, setIsGenerateRouteOpen] = useState(false);
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebounce(search, 300);
@@ -60,10 +61,7 @@ export default function FleetManagementPage() {
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
-              onClick={() => {
-                refetchFleet();
-                refetchRoutes();
-              }}
+              onClick={() => { refetchFleet(); refetchRoutes(); }}
               disabled={isLoadingFleet || isRefetchingFleet || isLoadingRoutes || isRefetchingRoutes}
               className="h-10 px-3.5 text-[14px] rounded-lg border-slate-300 text-slate-700 hover:bg-slate-50"
             >
@@ -71,13 +69,23 @@ export default function FleetManagementPage() {
               <span className="hidden sm:inline">Refresh</span>
             </Button>
             {activeTab === 'fleet' ? (
-              <Button
-                onClick={() => setIsRegisterOpen(true)}
-                className="h-10 px-4 text-[14px] font-medium rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs inline-flex items-center gap-2"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Register Vehicle</span>
-              </Button>
+              <>
+                <Button
+                  onClick={() => setIsCreateDriverOpen(true)}
+                  variant="outline"
+                  className="h-10 px-3.5 text-[14px] font-medium rounded-lg border-slate-300 text-slate-700 hover:bg-slate-50 inline-flex items-center gap-1.5"
+                >
+                  <UserPlus className="w-4 h-4 text-emerald-600" />
+                  <span>Add Staff / Driver</span>
+                </Button>
+                <Button
+                  onClick={() => setIsRegisterOpen(true)}
+                  className="h-10 px-4 text-[14px] font-medium rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs inline-flex items-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Register Vehicle</span>
+                </Button>
+              </>
             ) : (
               <Button
                 onClick={() => setIsGenerateRouteOpen(true)}
@@ -93,43 +101,12 @@ export default function FleetManagementPage() {
 
       <main className="flex-1 p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto w-full">
         {/* Fleet KPI Summary Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
-          <Card className="p-4 bg-white border border-slate-200 rounded-xl shadow-2xs">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-slate-500 uppercase">Total Fleet</span>
-              <Truck className="w-4 h-4 text-slate-400" />
-            </div>
-            <div className="text-2xl font-bold text-slate-900 mt-1">{vehicles.length}</div>
-            <span className="text-[11.5px] text-slate-400">Registered assets</span>
-          </Card>
-
-          <Card className="p-4 bg-white border border-slate-200 rounded-xl shadow-2xs">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-emerald-600 uppercase">Available</span>
-              <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-            </div>
-            <div className="text-2xl font-bold text-emerald-700 mt-1">{availableCount}</div>
-            <span className="text-[11.5px] text-emerald-600/80">Ready for dispatch</span>
-          </Card>
-
-          <Card className="p-4 bg-white border border-slate-200 rounded-xl shadow-2xs">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-blue-600 uppercase">On Route</span>
-              <Navigation className="w-4 h-4 text-blue-500" />
-            </div>
-            <div className="text-2xl font-bold text-blue-700 mt-1">{onRouteCount}</div>
-            <span className="text-[11.5px] text-blue-600/80">Active collection</span>
-          </Card>
-
-          <Card className="p-4 bg-white border border-slate-200 rounded-xl shadow-2xs">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-amber-600 uppercase">Maintenance</span>
-              <Wrench className="w-4 h-4 text-amber-500" />
-            </div>
-            <div className="text-2xl font-bold text-amber-700 mt-1">{maintenanceCount}</div>
-            <span className="text-[11.5px] text-amber-600/80">Under workshop review</span>
-          </Card>
-        </div>
+        <FleetKpiCards
+          totalCount={vehicles.length}
+          availableCount={availableCount}
+          onRouteCount={onRouteCount}
+          maintenanceCount={maintenanceCount}
+        />
 
         {/* Workspace Mode Tabs */}
         <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as 'fleet' | 'routes')} className="w-full">
@@ -204,6 +181,12 @@ export default function FleetManagementPage() {
         open={isRegisterOpen}
         onOpenChange={setIsRegisterOpen}
         onRegistered={() => refetchFleet()}
+      />
+
+      <CreateDriverModal
+        open={isCreateDriverOpen}
+        onOpenChange={setIsCreateDriverOpen}
+        onDriverCreated={() => refetchFleet()}
       />
 
       <GenerateRouteModal

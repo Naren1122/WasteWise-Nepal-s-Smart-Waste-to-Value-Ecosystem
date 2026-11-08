@@ -151,6 +151,8 @@ export class FleetService {
             fullName: v.assignedDriver.fullName,
             phone: v.assignedDriver.phone,
             email: v.assignedDriver.email,
+            photoUrl: v.assignedDriver.photoUrl,
+            age: v.assignedDriver.age,
           }
         : null,
       routesCount: v._count?.routes ?? 0,

@@ -18,20 +18,13 @@ export class ApiClientError extends Error {
 class ApiClient {
   private refreshPromise: Promise<string | null> | null = null;
 
+  private getStorage(key: string): string | null {
+    return typeof window !== 'undefined' ? localStorage.getItem(key) : null;
+  }
+
   private getAuthTokens(): AuthTokens | null {
-    if (typeof window === 'undefined') return null;
-    const tokens = localStorage.getItem('wastewise_tokens');
+    const tokens = this.getStorage('wastewise_tokens');
     return tokens ? JSON.parse(tokens) : null;
-  }
-
-  private getTenantId(): string | null {
-    if (typeof window === 'undefined') return null;
-    return localStorage.getItem('wastewise_tenant_id');
-  }
-
-  private getTenantSubdomain(): string | null {
-    if (typeof window === 'undefined') return null;
-    return localStorage.getItem('wastewise_tenant_subdomain');
   }
 
   private handleSessionExpired(): void {
@@ -39,7 +32,6 @@ class ApiClient {
       localStorage.removeItem('wastewise_tokens');
       localStorage.removeItem('wastewise_user');
       useAuthStore.getState().logout();
-
       const path = window.location.pathname;
       if (!path.includes('/login') && !path.includes('/register')) {
         window.location.href = '/login?expired=1';
@@ -100,24 +92,54 @@ class ApiClient {
   ): Promise<ApiResponse<T>> {
     const url = `${API_BASE_URL}${endpoint}`;
     const tokens = this.getAuthTokens();
-    const tenantId = this.getTenantId();
-    const tenantSubdomain = this.getTenantSubdomain();
+    const tenantId = this.getStorage('wastewise_tenant_id');
+    const tenantSubdomain = this.getStorage('wastewise_tenant_subdomain');
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       ...(options.headers as Record<string, string>),
     };
 
-    if (tokens?.accessToken) {
+    const isAuthRoute =
+      endpoint.startsWith('/auth/login') ||
+      endpoint.startsWith('/auth/register') ||
+      endpoint.startsWith('/tenants/onboard');
+
+    const isPublicRoute =
+      isAuthRoute ||
+      endpoint.startsWith('/auth/refresh') ||
+      endpoint.startsWith('/health') ||
+      endpoint.startsWith('/tenants/public') ||
+      endpoint.startsWith('/payments/esewa/verify') ||
+      endpoint.startsWith('/payments/khalti/verify');
+
+    if (!isAuthRoute) {
+      if (tenantId && !headers['X-Tenant-Subdomain']) {
+        headers['X-Tenant-ID'] = tenantId;
+      }
+      if (tenantSubdomain && !headers['X-Tenant-Subdomain']) {
+        headers['X-Tenant-Subdomain'] = tenantSubdomain;
+      }
+    }
+
+    if (!isPublicRoute) {
+      let activeToken = tokens?.accessToken;
+      if (!activeToken && tokens?.refreshToken) {
+        activeToken = (await this.refreshAccessToken()) ?? undefined;
+      }
+
+      if (!activeToken) {
+        this.handleSessionExpired();
+        throw new ApiClientError(
+          'UNAUTHORIZED',
+          'Authentication required: Please sign in to continue.',
+          401
+        );
+      }
+
+      headers['Authorization'] = `Bearer ${activeToken}`;
+    } else if (tokens?.accessToken) {
       headers['Authorization'] = `Bearer ${tokens.accessToken}`;
-    }
-
-    if (tenantId) {
-      headers['X-Tenant-ID'] = tenantId;
-    }
-
-    if (tenantSubdomain) {
-      headers['X-Tenant-Subdomain'] = tenantSubdomain;
     }
 
     const response = await fetch(url, {
@@ -128,6 +150,15 @@ class ApiClient {
     const body = await response.json();
 
     if (!response.ok) {
+      if (response.status === 404 && body && typeof body === 'object') {
+        const errorResponse = body as ApiErrorResponse;
+        if (errorResponse.error?.message?.toLowerCase().includes('tenant')) {
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('wastewise_tenant_id');
+            localStorage.removeItem('wastewise_tenant_subdomain');
+          }
+        }
+      }
       // Auto-refresh expired access tokens seamlessly (GEMINI.md Rule 5.2)
       if (
         response.status === 401 &&
@@ -161,17 +192,11 @@ class ApiClient {
   }
 
   public async post<T>(endpoint: string, data?: unknown): Promise<ApiResponse<T>> {
-    return this.request<T>(endpoint, {
-      method: 'POST',
-      body: data ? JSON.stringify(data) : undefined,
-    });
+    return this.request<T>(endpoint, { method: 'POST', body: data ? JSON.stringify(data) : undefined });
   }
 
   public async patch<T>(endpoint: string, data?: unknown): Promise<ApiResponse<T>> {
-    return this.request<T>(endpoint, {
-      method: 'PATCH',
-      body: data ? JSON.stringify(data) : undefined,
-    });
+    return this.request<T>(endpoint, { method: 'PATCH', body: data ? JSON.stringify(data) : undefined });
   }
 
   public async delete<T>(endpoint: string): Promise<ApiResponse<T>> {

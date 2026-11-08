@@ -18,6 +18,8 @@ export const toUserProfileDto = (user: User): UserProfileDto => ({
   phone: user.phone,
   role: user.role,
   status: user.status,
+  photoUrl: user.photoUrl,
+  age: user.age,
   createdAt: user.createdAt,
 });
 

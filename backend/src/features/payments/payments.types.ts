@@ -97,6 +97,8 @@ export interface IPaymentsRepository {
 
   findPaymentById(tenantId: string, paymentId: string): Promise<PaymentWithRelations | null>;
 
+  findPaymentByReferenceGlobal(reference: string): Promise<Payment | null>;
+
   updateGatewayRefId(
     tenantId: string,
     paymentId: string,

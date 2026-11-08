@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../../../shared/lib/api-client';
+import { toast } from '@/shared/components/ui/sonner';
 
 export type PropertyType = 'RESIDENTIAL' | 'COMMERCIAL' | 'INDUSTRIAL' | 'INSTITUTIONAL';
 export type PropertyStatus = 'PENDING_VERIFICATION' | 'ACTIVE' | 'INACTIVE';
@@ -101,9 +102,16 @@ export function useCreateProperty() {
       const response = await apiClient.post<Property>('/properties', input);
       return response.data;
     },
-    onSuccess: () => {
-      // Invalidate my-properties cache so the list auto-refreshes
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['my-properties'] });
+      toast.success('Property registered successfully', {
+        description: `Property at "${data?.streetAddress ?? 'Address'}" submitted for verification.`,
+      });
+    },
+    onError: (err: unknown) => {
+      toast.error('Failed to register property', {
+        description: err instanceof Error ? err.message : 'Please check the provided inputs.',
+      });
     },
   });
 }

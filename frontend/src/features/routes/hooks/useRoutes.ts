@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/shared/lib/api-client';
+import { toast } from '@/shared/components/ui/sonner';
 import type {
   Route,
   RouteStop,
@@ -81,8 +82,16 @@ export function useGenerateRoute() {
     mutationFn: async (data: GenerateDailyRouteInput) => {
       return apiClient.post<Route>('/routes/generate', data);
     },
-    onSuccess: () => {
+    onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ['routes'] });
+      toast.success('Route generated successfully', {
+        description: `Route for Ward #${res.data?.wardNumber ?? ''} created with ${res.data?.stopsCount ?? 0} stops.`,
+      });
+    },
+    onError: (err: unknown) => {
+      toast.error('Failed to generate route', {
+        description: err instanceof Error ? err.message : 'Please check route parameters.',
+      });
     },
   });
 }
@@ -93,10 +102,19 @@ export function useUpdateRouteStatus() {
     mutationFn: async ({ id, data }: { id: string; data: UpdateRouteStatusInput }) => {
       return apiClient.patch<Route>(`/routes/${id}`, data);
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['routes'] });
       queryClient.invalidateQueries({ queryKey: ['route'] });
       queryClient.invalidateQueries({ queryKey: ['driver-active-route'] });
+      const statusLabel = variables.data.status ? variables.data.status.replace(/_/g, ' ') : 'Updated';
+      toast.success('Route status updated', {
+        description: `Route marked as ${statusLabel}.`,
+      });
+    },
+    onError: (err: unknown) => {
+      toast.error('Failed to update route status', {
+        description: err instanceof Error ? err.message : 'Please try again.',
+      });
     },
   });
 }
@@ -107,10 +125,18 @@ export function useUpdateStopStatus() {
     mutationFn: async ({ stopId, data }: { stopId: string; data: UpdateStopStatusInput }) => {
       return apiClient.patch<RouteStop>(`/routes/stops/${stopId}`, data);
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['routes'] });
       queryClient.invalidateQueries({ queryKey: ['route'] });
       queryClient.invalidateQueries({ queryKey: ['driver-active-route'] });
+      toast.success('Stop status updated', {
+        description: `Stop marked as ${variables.data.status.replace(/_/g, ' ')}.`,
+      });
+    },
+    onError: (err: unknown) => {
+      toast.error('Failed to update stop', {
+        description: err instanceof Error ? err.message : 'Please try again.',
+      });
     },
   });
 }
@@ -121,9 +147,18 @@ export function useBatchOfflineSync() {
     mutationFn: async (updates: OfflineStopSyncItem[]) => {
       return apiClient.post<{ syncedCount: number }>('/routes/sync', { updates });
     },
-    onSuccess: () => {
+    onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ['routes'] });
       queryClient.invalidateQueries({ queryKey: ['driver-active-route'] });
+      const count = res.data?.syncedCount ?? 0;
+      toast.success('Stops synced successfully', {
+        description: `${count} offline stop updates synced to server.`,
+      });
+    },
+    onError: (err: unknown) => {
+      toast.error('Failed to sync stops', {
+        description: err instanceof Error ? err.message : 'Please check network connection.',
+      });
     },
   });
 }

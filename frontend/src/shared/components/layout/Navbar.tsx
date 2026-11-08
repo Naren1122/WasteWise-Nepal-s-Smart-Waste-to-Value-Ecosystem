@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../../features/auth/hooks/useAuth';
 import { Button } from '../ui/button';
@@ -18,8 +19,8 @@ export const Navbar: React.FC = () => {
   return (
     <header className="h-16 bg-white border-b border-slate-200 px-6 flex items-center justify-between sticky top-0 z-30">
       <div className="flex items-center gap-3">
-        <div className="w-9 h-9 rounded-lg bg-emerald-600 flex items-center justify-center text-white font-bold text-lg shadow-sm">
-          W
+        <div className="relative w-9 h-9 rounded-lg overflow-hidden border border-emerald-200/80 bg-white flex items-center justify-center shadow-xs">
+          <Image src="/logo.webp" alt="WasteWise Logo" width={36} height={36} className="object-contain" priority />
         </div>
         <div>
           <span className="font-bold text-slate-900 tracking-tight text-base">WasteWise</span>

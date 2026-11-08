@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../../../shared/lib/api-client';
+import { toast } from '@/shared/components/ui/sonner';
 import { Property, PropertyStatus, PropertyType } from './useProperties';
 
 export interface AdminPropertyFilters {
@@ -77,9 +78,17 @@ export function useUpdatePropertyStatus() {
       });
       return response.data;
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['admin-properties'] });
       queryClient.invalidateQueries({ queryKey: ['my-properties'] });
+      toast.success('Property status updated', {
+        description: `Property status set to ${variables.status.replace(/_/g, ' ')}.`,
+      });
+    },
+    onError: (err: unknown) => {
+      toast.error('Failed to update property status', {
+        description: err instanceof Error ? err.message : 'Please try again later.',
+      });
     },
   });
 }

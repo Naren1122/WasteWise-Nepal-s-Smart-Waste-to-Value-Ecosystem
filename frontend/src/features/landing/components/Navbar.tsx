@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Menu, ArrowRight, ShieldCheck, Sparkles } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import { Badge } from '@/shared/components/ui/badge';
@@ -30,8 +31,8 @@ export function Navbar() {
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Brand Logo & SaaS Tagline */}
         <Link href="/" className="flex items-center gap-2.5 group">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-600 text-white font-extrabold text-lg shadow-sm transition-transform group-hover:scale-105">
-            W
+          <div className="relative flex h-10 w-10 items-center justify-center rounded-xl overflow-hidden shadow-xs transition-transform group-hover:scale-105 border border-emerald-200/80 bg-white">
+            <Image src="/logo.webp" alt="WasteWise Logo" width={40} height={40} className="object-contain" priority />
           </div>
           <div className="flex flex-col">
             <div className="flex items-center gap-1.5">
@@ -98,9 +99,9 @@ export function Navbar() {
               <div className="space-y-6">
                 <SheetHeader className="text-left pb-4 border-b border-slate-100">
                   <SheetTitle className="flex items-center gap-2 text-slate-900 font-extrabold text-lg">
-                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-600 text-white font-bold text-sm">
-                      W
-                    </span>
+                    <div className="relative flex h-8 w-8 items-center justify-center rounded-lg overflow-hidden border border-emerald-200 bg-white">
+                      <Image src="/logo.webp" alt="WasteWise Logo" width={32} height={32} className="object-contain" />
+                    </div>
                     WasteWise
                   </SheetTitle>
                 </SheetHeader>
@@ -151,3 +152,4 @@ export function Navbar() {
     </header>
   );
 }
+

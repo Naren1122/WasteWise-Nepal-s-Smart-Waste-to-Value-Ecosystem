@@ -25,6 +25,10 @@ export class PaymentsService {
     private readonly billingRepo: IBillingRepository = new BillingRepository()
   ) {}
 
+  public async findPaymentByReferenceGlobal(reference: string) {
+    return this.repo.findPaymentByReferenceGlobal(reference);
+  }
+
   public async initiatePayment(
     tenantId: string,
     payer: UserContext,

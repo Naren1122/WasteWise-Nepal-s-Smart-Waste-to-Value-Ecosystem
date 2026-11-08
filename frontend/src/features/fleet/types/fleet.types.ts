@@ -32,7 +32,24 @@ export interface DriverSummary {
   fullName: string;
   phone: string;
   email: string;
+  photoUrl?: string | null;
+  age?: number | null;
 }
+
+export type StaffRole = 'DRIVER' | 'WARD_OFFICER' | 'DISPATCHER' | 'FIELD_WORKER';
+
+export interface CreateStaffInput {
+  fullName: string;
+  phone: string;
+  email: string;
+  password: string;
+  role?: StaffRole;
+  age?: number;
+  photo?: string;
+  wardId?: string;
+}
+
+export type CreateDriverInput = CreateStaffInput;
 
 export interface Vehicle {
   id: string;

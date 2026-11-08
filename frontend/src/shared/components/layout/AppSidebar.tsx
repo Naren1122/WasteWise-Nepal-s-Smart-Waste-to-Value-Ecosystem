@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import {
   Sidebar as ShadcnSidebar,
@@ -87,16 +88,16 @@ export function AppSidebar() {
           <button
             onClick={toggleSidebar}
             title="Expand Sidebar"
-            className="flex h-10 w-10 mx-auto items-center justify-center rounded-xl bg-emerald-600 text-white font-extrabold text-base shadow-xs hover:bg-emerald-700 transition-all cursor-pointer group relative"
+            className="flex h-10 w-10 mx-auto items-center justify-center rounded-xl overflow-hidden bg-white border border-emerald-200/80 shadow-xs hover:border-emerald-400 transition-all cursor-pointer group relative"
           >
-            <span className="group-hover:hidden">W</span>
-            <PanelLeftOpen className="w-5 h-5 hidden group-hover:block" />
+            <Image src="/logo.webp" alt="WasteWise" width={32} height={32} className="object-contain group-hover:hidden" />
+            <PanelLeftOpen className="w-5 h-5 text-emerald-700 hidden group-hover:block" />
           </button>
         ) : (
           <div className="flex items-center justify-between w-full px-1">
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="flex h-9.5 w-9.5 items-center justify-center rounded-xl bg-emerald-600 text-white font-extrabold text-base shadow-xs shrink-0">
-                W
+              <div className="relative flex h-9.5 w-9.5 items-center justify-center rounded-xl overflow-hidden bg-white border border-emerald-200/80 shadow-xs shrink-0">
+                <Image src="/logo.webp" alt="WasteWise" width={34} height={34} className="object-contain" priority />
               </div>
               <div className="flex flex-col min-w-0">
                 <span className="font-extrabold text-[15px] text-slate-900 leading-tight truncate tracking-tight">

@@ -9,24 +9,25 @@ import { Role } from '@prisma/client';
 const router = Router();
 const controller = new AuthController();
 
+// Public Tenant Listing (for citizen registration municipality selection)
+router.get('/tenants/public', asyncHandler(controller.listPublicTenants));
+
 // Public Tenant Onboarding (creates a new municipality tenant + initial admin)
 router.post('/tenants/onboard', asyncHandler(controller.onboardTenant));
 
 // Refresh Token (independent of tenant header, verified by token payload)
 router.post('/auth/refresh', asyncHandler(controller.refreshTokens));
 
-// Tenant-scoped authentication routes
+// Authentication routes (auto-resolves tenant or accepts optional tenant headers)
 router.post(
   '/auth/register',
   tenantContextMiddleware,
-  requireTenant,
   asyncHandler(controller.register)
 );
 
 router.post(
   '/auth/login',
   tenantContextMiddleware,
-  requireTenant,
   asyncHandler(controller.login)
 );
 

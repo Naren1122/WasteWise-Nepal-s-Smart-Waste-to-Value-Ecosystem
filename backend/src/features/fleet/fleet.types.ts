@@ -8,6 +8,8 @@ export interface DriverSummaryDto {
   fullName: string;
   phone: string;
   email: string;
+  photoUrl?: string | null;
+  age?: number | null;
 }
 
 export type VehicleWithRelations = Prisma.VehicleGetPayload<{
@@ -18,6 +20,8 @@ export type VehicleWithRelations = Prisma.VehicleGetPayload<{
         fullName: true;
         phone: true;
         email: true;
+        photoUrl: true;
+        age: true;
       };
     };
     _count: {

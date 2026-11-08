@@ -1,27 +1,12 @@
-'use client';
+import React from 'react';
+import { LandingView } from '@/features/landing/components/LandingView';
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuthStore } from '../shared/stores/auth.store';
+export const metadata = {
+  title: 'WasteWise Nepal | Smart Municipal Solid Waste Management SaaS',
+  description:
+    'Modernizing municipal waste management across Nepal with live PostGIS GPS fleet tracking, automated eSewa & Khalti digital tariffs, and photo-verified citizen grievance redressal.',
+};
 
-export default function RootPage() {
-  const router = useRouter();
-  const { isAuthenticated, isLoading } = useAuthStore();
-
-  useEffect(() => {
-    if (!isLoading) {
-      if (isAuthenticated) {
-        router.replace('/dashboard');
-      } else {
-        router.replace('/login');
-      }
-    }
-  }, [isLoading, isAuthenticated, router]);
-
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50">
-      <div className="w-8 h-8 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin" />
-    </div>
-  );
+export default function LandingPage() {
+  return <LandingView />;
 }
-

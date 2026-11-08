@@ -71,6 +71,19 @@ export class PaymentsRepository implements IPaymentsRepository {
     return (payment as PaymentWithRelations) ?? null;
   }
 
+  public async findPaymentByReferenceGlobal(
+    reference: string
+  ): Promise<Payment | null> {
+    return prisma.payment.findFirst({
+      where: {
+        OR: [
+          { transactionReference: reference },
+          { gatewayRefId: reference },
+        ],
+      },
+    });
+  }
+
   public async updateGatewayRefId(
     tenantId: string,
     paymentId: string,

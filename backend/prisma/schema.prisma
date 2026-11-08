@@ -195,6 +195,8 @@ model User {
   passwordHash String     @map("password_hash") @db.VarChar(255)
   role         Role       @default(CITIZEN)
   status       UserStatus @default(ACTIVE)
+  photoUrl     String?    @map("photo_url") @db.VarChar(500)
+  age          Int?
   createdAt    DateTime   @default(now()) @map("created_at")
   updatedAt    DateTime   @updatedAt @map("updated_at")
 
