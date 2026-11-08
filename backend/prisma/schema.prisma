@@ -155,6 +155,8 @@ model Tenant {
   invoiceItems        InvoiceItem[]
   payments            Payment[]
   complaints          Complaint[]
+  dailyAnalyticsSnapshots DailyAnalyticsSnapshot[]
+  auditLogs           AuditLog[]
 
   @@map("tenants")
 }
@@ -176,6 +178,7 @@ model Ward {
   scheduledPickups    ScheduledPickup[]
   routes              Route[]
   complaints          Complaint[]
+  dailyAnalyticsSnapshots DailyAnalyticsSnapshot[]
 
   @@unique([id, tenantId])
   @@unique([tenantId, wardNumber])
@@ -211,6 +214,7 @@ model User {
   complaintAttachmentsUploaded ComplaintAttachment[] @relation("UploadedAttachments")
   complaintTimelinesPerformed  ComplaintTimeline[]   @relation("PerformedTimelines")
   complaintsSubscribed         ComplaintSubscriber[] @relation("CitizenSubscribed")
+  auditLogsTriggered           AuditLog[]            @relation("UserAuditLogs")
 
   @@unique([tenantId, email])
   @@unique([tenantId, phone])
@@ -759,4 +763,90 @@ model ComplaintFeedback {
   complaint   Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
 
   @@map("complaint_feedbacks")
+}
+
+// ----------------------------------------------------
+// PHASE 8: MUNICIPAL ANALYTICS & AUDIT TRAIL ENGINE
+// ----------------------------------------------------
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  STATUS_CHANGE
+  PAYMENT_RECORDED
+  ROUTE_DISPATCH
+  EXPORT_GENERATED
+  SECURITY_EVENT
+}
+
+model DailyAnalyticsSnapshot {
+  id                      String   @id @default(uuid()) @db.Uuid
+  tenantId                String   @map("tenant_id") @db.Uuid
+  wardId                  String?  @map("ward_id") @db.Uuid
+  snapshotDate            DateTime @map("snapshot_date") @db.Date
+
+  // Operational Collection KPIs
+  totalStopsScheduled     Int      @default(0) @map("total_stops_scheduled")
+  totalStopsCollected     Int      @default(0) @map("total_stops_collected")
+  totalStopsMissed        Int      @default(0) @map("total_stops_missed")
+  totalStopsRejected      Int      @default(0) @map("total_stops_rejected")
+  collectionEfficiencyPct Float    @default(0.0) @map("collection_efficiency_pct")
+
+  // Financial & Revenue KPIs (NPR)
+  totalBilledNpr          Decimal  @default(0.0) @map("total_billed_npr") @db.Decimal(12, 2)
+  totalCollectedNpr       Decimal  @default(0.0) @map("total_collected_npr") @db.Decimal(12, 2)
+  digitalPaymentsNpr      Decimal  @default(0.0) @map("digital_payments_npr") @db.Decimal(12, 2)
+  cashPaymentsNpr         Decimal  @default(0.0) @map("cash_payments_npr") @db.Decimal(12, 2)
+
+  // Grievance & SLA KPIs
+  complaintsSubmitted     Int      @default(0) @map("complaints_submitted")
+  complaintsResolved      Int      @default(0) @map("complaints_resolved")
+  complaintsSlaBreached   Int      @default(0) @map("complaints_sla_breached")
+  medianResolutionHours   Float    @default(0.0) @map("median_resolution_hours")
+
+  // Fleet & Resource Utilization
+  activeVehiclesCount     Int      @default(0) @map("active_vehicles_count")
+  totalKmTraveled         Float    @default(0.0) @map("total_km_traveled")
+
+  createdAt               DateTime @default(now()) @map("created_at")
+  updatedAt               DateTime @updatedAt @map("updated_at")
+
+  tenant                  Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  ward                    Ward?    @relation(fields: [wardId], references: [id], onDelete: SetNull)
+
+  @@unique([id, tenantId])
+  @@unique([tenantId, wardId, snapshotDate])
+  @@index([tenantId, snapshotDate])
+  @@index([tenantId, wardId, snapshotDate])
+  @@map("daily_analytics_snapshots")
+}
+
+model AuditLog {
+  id          String      @id @default(uuid()) @db.Uuid
+  tenantId    String      @map("tenant_id") @db.Uuid
+  actorUserId String?     @map("actor_user_id") @db.Uuid
+  actorRole   Role?       @map("actor_role")
+  ipAddress   String?     @map("ip_address") @db.VarChar(45)
+  userAgent   String?     @map("user_agent") @db.VarChar(255)
+  
+  entityType  String      @map("entity_type") @db.VarChar(64)
+  entityId    String      @map("entity_id") @db.VarChar(64)
+  action      AuditAction @map("action")
+  
+  diffBefore  Json?       @map("diff_before")
+  diffAfter   Json?       @map("diff_after")
+  description String?     @db.VarChar(255)
+  
+  createdAt   DateTime    @default(now()) @map("created_at")
+
+  tenant      Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  actorUser   User?       @relation("UserAuditLogs", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@unique([id, tenantId])
+  @@index([tenantId, createdAt])
+  @@index([tenantId, entityType, entityId])
+  @@index([tenantId, actorUserId])
+  @@index([tenantId, action])
+  @@map("audit_logs")
 }

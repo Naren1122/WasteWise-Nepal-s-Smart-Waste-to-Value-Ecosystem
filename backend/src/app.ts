@@ -13,6 +13,11 @@ import { routesRoutes } from './features/routes/routes.routes.js';
 import { trackingRoutes } from './features/tracking/tracking.routes.js';
 import { billingRouter } from './features/billing/billing.routes.js';
 import { paymentsRouter } from './features/payments/payments.routes.js';
+import { complaintsRouter } from './features/complaints/complaints.routes.js';
+import { analyticsRouter } from './features/analytics/analytics.routes.js';
+import { reportsRouter } from './features/reports/reports.routes.js';
+import { auditRouter } from './features/audit/audit.routes.js';
+import { healthRouter } from './features/health/health.routes.js';
 import { errorHandlerMiddleware } from './shared/errors/error-handler.middleware.js';
 import { NotFoundError } from './shared/errors/app-error.js';
 
@@ -29,16 +34,11 @@ export const createApp = (): Application => {
       allowedHeaders: ['Content-Type', 'Authorization', 'X-Tenant-ID', 'X-Tenant-Subdomain'],
     })
   );
-  app.use(express.json());
+  app.use(express.json({ limit: '10mb' }));
+  app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-  // Health check endpoint
-  app.get('/health', (_req: Request, res: Response) => {
-    res.status(200).json({
-      status: 'UP',
-      timestamp: new Date().toISOString(),
-      service: 'WasteWise API',
-    });
-  });
+  // Health & Readiness Probes
+  app.use('/health', healthRouter);
 
   // REST API v1 Routes
   const apiRouter = express.Router();
@@ -53,6 +53,10 @@ export const createApp = (): Application => {
   apiRouter.use(trackingRoutes);
   apiRouter.use('/invoices', billingRouter);
   apiRouter.use('/payments', paymentsRouter);
+  apiRouter.use('/complaints', complaintsRouter);
+  apiRouter.use('/analytics', analyticsRouter);
+  apiRouter.use('/reports', reportsRouter);
+  apiRouter.use('/audit-logs', auditRouter);
 
   app.use('/api/v1', apiRouter);
 

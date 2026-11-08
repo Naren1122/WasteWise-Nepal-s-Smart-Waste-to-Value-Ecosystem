@@ -132,50 +132,48 @@ export class ComplaintsRepository implements IComplaintsRepository {
     ticketNumber: string,
     slaDeadline: Date
   ): Promise<ComplaintDetailDto> {
-    return prisma.$transaction(async (tx) => {
-      const complaint = await tx.complaint.create({
-        data: {
-          tenantId,
-          ticketNumber,
-          wardId: data.wardId,
-          citizenId,
-          category: data.category,
-          priority: data.priority ?? 'MEDIUM',
-          status: 'SUBMITTED',
-          title: data.title,
-          description: data.description,
-          latitude: data.latitude,
-          longitude: data.longitude,
-          addressText: data.addressText ?? null,
-          slaDeadline,
-          ...(data.attachments?.length && {
-            attachments: {
-              createMany: {
-                data: data.attachments.map((att) => ({
-                  attachmentType: 'REPORT_PHOTO' as const,
-                  fileUrl: att.fileUrl,
-                  fileKey: att.fileKey,
-                  mimeType: att.mimeType,
-                  fileSize: att.fileSize,
-                  uploadedById: citizenId,
-                })),
-              },
-            },
-          }),
-          timelines: {
-            create: {
-              toStatus: 'SUBMITTED',
-              action: 'LODGED',
-              notes: 'Grievance submitted by citizen',
-              performedById: citizenId,
+    const complaint = await prisma.complaint.create({
+      data: {
+        tenantId,
+        ticketNumber,
+        wardId: data.wardId,
+        citizenId,
+        category: data.category,
+        priority: data.priority ?? 'MEDIUM',
+        status: 'SUBMITTED',
+        title: data.title,
+        description: data.description,
+        latitude: data.latitude,
+        longitude: data.longitude,
+        addressText: data.addressText ?? null,
+        slaDeadline,
+        ...(data.attachments?.length && {
+          attachments: {
+            createMany: {
+              data: data.attachments.map((att) => ({
+                attachmentType: 'REPORT_PHOTO' as const,
+                fileUrl: att.fileUrl,
+                fileKey: att.fileKey,
+                mimeType: att.mimeType,
+                fileSize: att.fileSize,
+                uploadedById: citizenId,
+              })),
             },
           },
+        }),
+        timelines: {
+          create: {
+            toStatus: 'SUBMITTED',
+            action: 'LODGED',
+            notes: 'Grievance submitted by citizen',
+            performedById: citizenId,
+          },
         },
-        include: detailInclude,
-      });
-
-      return mapToDetailDto(complaint as ComplaintWithDetail);
+      },
+      include: detailInclude,
     });
+
+    return mapToDetailDto(complaint as ComplaintWithDetail);
   }
 
   async findCandidateDuplicates(
@@ -197,22 +195,25 @@ export class ComplaintsRepository implements IComplaintsRepository {
   }
 
   async addSubscriber(complaintId: string, citizenId: string): Promise<void> {
-    await prisma.$transaction(async (tx) => {
-      await tx.complaintSubscriber.upsert({
-        where: { complaintId_citizenId: { complaintId, citizenId } },
-        create: { complaintId, citizenId },
-        update: {},
-      });
-      await tx.complaintTimeline.create({
-        data: {
-          complaintId,
-          toStatus: 'SUBMITTED',
-          action: 'SUBSCRIBED',
-          notes: 'Citizen linked as subscriber to clustered issue',
-          performedById: citizenId,
-        },
-      });
-    });
+    await prisma.$transaction(
+      async (tx) => {
+        await tx.complaintSubscriber.upsert({
+          where: { complaintId_citizenId: { complaintId, citizenId } },
+          create: { complaintId, citizenId },
+          update: {},
+        });
+        await tx.complaintTimeline.create({
+          data: {
+            complaintId,
+            toStatus: 'SUBMITTED',
+            action: 'SUBSCRIBED',
+            notes: 'Citizen linked as subscriber to clustered issue',
+            performedById: citizenId,
+          },
+        });
+      },
+      { timeout: 15000, maxWait: 10000 }
+    );
   }
 
   async findById(tenantId: string, id: string): Promise<ComplaintDetailDto | null> {
@@ -347,7 +348,7 @@ export class ComplaintsRepository implements IComplaintsRepository {
       });
 
       return mapToDetailDto(updated as ComplaintWithDetail);
-    });
+    }, { timeout: 15000, maxWait: 10000 });
   }
 
   async resolve(
@@ -394,7 +395,7 @@ export class ComplaintsRepository implements IComplaintsRepository {
       });
 
       return mapToDetailDto(resolved as ComplaintWithDetail);
-    });
+    }, { timeout: 15000, maxWait: 10000 });
   }
 
   async reopen(
@@ -429,7 +430,7 @@ export class ComplaintsRepository implements IComplaintsRepository {
       });
 
       return mapToDetailDto(reopened as ComplaintWithDetail);
-    });
+    }, { timeout: 15000, maxWait: 10000 });
   }
 
   async addFeedback(
@@ -447,7 +448,7 @@ export class ComplaintsRepository implements IComplaintsRepository {
           comments: comments ?? null,
         },
       });
-    });
+    }, { timeout: 15000, maxWait: 10000 });
   }
 }
 

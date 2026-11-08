@@ -27,6 +27,10 @@ const envSchema = z.object({
   ESEWA_STATUS_URL: z.string().url().default('https://rc.esewa.com.np/api/epay/transaction/status/'),
   KHALTI_SECRET_KEY: z.string().default('test_secret_key_7c992762283e4fc2909438d172e259e8'),
   KHALTI_GATEWAY_URL: z.string().url().default('https://a.khalti.com/api/v2/epayment/'),
+  // Cloudinary Image Storage
+  CLOUDINARY_CLOUD_NAME: z.string().optional(),
+  CLOUDINARY_API_KEY: z.string().optional(),
+  CLOUDINARY_API_SECRET: z.string().optional(),
 });
 
 const parsedEnv = envSchema.safeParse(process.env);

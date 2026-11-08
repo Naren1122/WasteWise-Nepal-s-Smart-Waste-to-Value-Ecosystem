@@ -38,6 +38,7 @@ router.get(
     Role.SUPER_ADMIN,
     Role.WARD_OFFICER,
     Role.DRIVER,
+    Role.CITIZEN,
   ]),
   asyncHandler(controller.listVehicles)
 );
@@ -50,6 +51,7 @@ router.get(
     Role.SUPER_ADMIN,
     Role.WARD_OFFICER,
     Role.DRIVER,
+    Role.CITIZEN,
   ]),
   asyncHandler(controller.getVehicleById)
 );

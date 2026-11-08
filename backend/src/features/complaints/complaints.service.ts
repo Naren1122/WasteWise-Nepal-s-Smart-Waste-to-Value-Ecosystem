@@ -15,12 +15,14 @@ import { VALID_STATUS_TRANSITIONS, ROLE_TRANSITION_PERMISSIONS } from './complai
 import type { PaginatedResult } from '../../shared/types/api-response.types.js';
 import type { UserContext } from '../../shared/types/user-context.types.js';
 import { haversineDistanceMeters } from '../../shared/utils/geo.util.js';
+import { uploadToCloudinary } from '../../shared/utils/cloudinary.service.js';
 import {
   NotFoundError,
   ForbiddenError,
   ValidationError,
   BadRequestError,
 } from '../../shared/errors/app-error.js';
+
 
 const DUPLICATE_RADIUS_METERS = 50;
 const DUPLICATE_WINDOW_HOURS = 48;
@@ -70,7 +72,27 @@ export class ComplaintsService {
     const randomSuffix = Math.floor(1000 + Math.random() * 9000);
     const ticketNumber = `WW-GRV-${datePrefix}-${randomSuffix}`;
 
-    const complaint = await this.repo.create(tenantId, citizenId, data, ticketNumber, slaDeadline);
+    const processedAttachments = data.attachments?.length
+      ? await Promise.all(
+          data.attachments.map(async (att) => {
+            if (att.fileUrl.startsWith('data:image/')) {
+              const uploaded = await uploadToCloudinary(att.fileUrl, `wastewise/tenants/${tenantId}/complaints`);
+              if (uploaded) {
+                return {
+                  ...att,
+                  fileUrl: uploaded.secureUrl,
+                  fileKey: uploaded.publicId,
+                  fileSize: uploaded.bytes,
+                };
+              }
+            }
+            return att;
+          })
+        )
+      : undefined;
+
+    const payload = processedAttachments ? { ...data, attachments: processedAttachments } : data;
+    const complaint = await this.repo.create(tenantId, citizenId, payload, ticketNumber, slaDeadline);
     return { isDuplicate: false, complaint };
   }
 
@@ -138,7 +160,23 @@ export class ComplaintsService {
     if (!RESOLVE_ROLES.includes(user.role)) {
       throw new ForbiddenError('Not authorized to resolve complaints');
     }
-    return this.repo.resolve(tenantId, id, user.id, data);
+    let payload = data;
+    if (data.proofPhoto && data.proofPhoto.fileUrl.startsWith('data:image/')) {
+      const uploaded = await uploadToCloudinary(data.proofPhoto.fileUrl, `wastewise/tenants/${tenantId}/resolutions`);
+      if (uploaded) {
+        payload = {
+          ...data,
+          proofPhoto: {
+            ...data.proofPhoto,
+            fileUrl: uploaded.secureUrl,
+            fileKey: uploaded.publicId,
+            fileSize: uploaded.bytes,
+          },
+        };
+      }
+    }
+
+    return this.repo.resolve(tenantId, id, user.id, payload);
   }
 
   async reopenComplaint(

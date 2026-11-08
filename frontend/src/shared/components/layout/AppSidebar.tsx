@@ -16,41 +16,9 @@ import {
   SidebarRail,
   useSidebar,
 } from '@/shared/components/ui/sidebar';
-import {
-  LayoutDashboard,
-  Home,
-  CalendarDays,
-  Truck,
-  MapPin,
-  Receipt,
-  AlertCircle,
-  Building2,
-  LogOut,
-  PanelLeftClose,
-  PanelLeftOpen,
-} from 'lucide-react';
+import { LogOut, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { useAuthStore } from '@/shared/stores/auth.store';
-
-interface NavItem {
-  title: string;
-  url: string;
-  icon: React.ComponentType<{ className?: string }>;
-  roles?: string[];
-}
-
-const mainNavItems: NavItem[] = [
-  { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
-  { title: 'My Properties', url: '/properties', icon: Home },
-  { title: 'Collection Schedules', url: '/schedules', icon: CalendarDays },
-  { title: 'Live GPS Tracking', url: '/tracking', icon: MapPin },
-  { title: 'Invoices & Payments', url: '/invoices', icon: Receipt },
-  { title: 'Complaints / Redressal', url: '/complaints', icon: AlertCircle },
-];
-
-const municipalNavItems: NavItem[] = [
-  { title: 'Fleet & Route Control', url: '/fleet', icon: Truck, roles: ['MUNICIPAL_ADMIN', 'SUPER_ADMIN', 'DISPATCHER'] },
-  { title: 'Wards & Service Zones', url: '/wards-admin', icon: Building2, roles: ['MUNICIPAL_ADMIN', 'SUPER_ADMIN', 'WARD_OFFICER'] },
-];
+import { mainNavItems, municipalNavItems, type NavItem } from './nav.config';
 
 function formatRole(role?: string): string {
   if (!role) return 'Citizen';

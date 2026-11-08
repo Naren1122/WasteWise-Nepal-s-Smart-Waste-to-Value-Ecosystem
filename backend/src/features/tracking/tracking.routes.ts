@@ -28,7 +28,14 @@ router.get(
   tenantContextMiddleware,
   requireTenant,
   authGuard,
-  requireRole([Role.MUNICIPAL_ADMIN, Role.DISPATCHER, Role.WARD_OFFICER, Role.SUPER_ADMIN]),
+  requireRole([
+    Role.MUNICIPAL_ADMIN,
+    Role.DISPATCHER,
+    Role.WARD_OFFICER,
+    Role.SUPER_ADMIN,
+    Role.CITIZEN,
+    Role.DRIVER,
+  ]),
   asyncHandler(controller.getActiveFleetPositions)
 );
 

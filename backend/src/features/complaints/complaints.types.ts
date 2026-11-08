@@ -31,7 +31,7 @@ export interface ComplaintTimelineDto {
   action: string;
   notes: string | null;
   performedById: string;
-  performedByName?: string;
+  performedByName?: string | undefined;
   createdAt: Date;
 }
 
@@ -47,12 +47,12 @@ export interface ComplaintDetailDto {
   tenantId: string;
   ticketNumber: string;
   wardId: string;
-  wardNumber?: number;
+  wardNumber?: number | undefined;
   citizenId: string;
-  citizenName?: string;
-  citizenPhone?: string;
+  citizenName?: string | undefined;
+  citizenPhone?: string | undefined;
   assignedToId: string | null;
-  assignedToName?: string | null;
+  assignedToName?: string | null | undefined;
   category: ComplaintCategory;
   priority: ComplaintPriority;
   status: ComplaintStatus;
@@ -71,14 +71,14 @@ export interface ComplaintDetailDto {
   attachments: ComplaintAttachmentDto[];
   timelines: ComplaintTimelineDto[];
   feedback: ComplaintFeedbackDto | null;
-  subscriberCount?: number;
+  subscriberCount?: number | undefined;
 }
 
 export interface ComplaintSummaryDto {
   id: string;
   ticketNumber: string;
   wardId: string;
-  wardNumber?: number;
+  wardNumber?: number | undefined;
   category: ComplaintCategory;
   priority: ComplaintPriority;
   status: ComplaintStatus;
@@ -94,41 +94,41 @@ export interface ComplaintSummaryDto {
 export interface LodgeComplaintDto {
   wardId: string;
   category: ComplaintCategory;
-  priority?: ComplaintPriority;
+  priority?: ComplaintPriority | undefined;
   title: string;
   description: string;
   latitude: number;
   longitude: number;
-  addressText?: string;
+  addressText?: string | undefined;
   attachments?: Array<{
     fileUrl: string;
     fileKey: string;
     mimeType: string;
     fileSize: number;
-  }>;
+  }> | undefined;
 }
 
 export interface TriageComplaintDto {
   status: ComplaintStatus;
-  priority?: ComplaintPriority;
-  assignedToId?: string;
-  notes?: string;
-  rejectionReason?: string;
+  priority?: ComplaintPriority | undefined;
+  assignedToId?: string | undefined;
+  notes?: string | undefined;
+  rejectionReason?: string | undefined;
 }
 
 export interface ResolveComplaintDto {
-  notes?: string;
+  notes?: string | undefined;
   proofPhoto?: {
     fileUrl: string;
     fileKey: string;
     mimeType: string;
     fileSize: number;
-  };
+  } | undefined;
 }
 
 export interface SubmitFeedbackDto {
   rating: number;
-  comments?: string;
+  comments?: string | undefined;
 }
 
 export interface ReopenComplaintDto {
@@ -136,16 +136,16 @@ export interface ReopenComplaintDto {
 }
 
 export interface ComplaintQueryFilters {
-  wardId?: string;
-  status?: ComplaintStatus;
-  category?: ComplaintCategory;
-  priority?: ComplaintPriority;
-  isSlaBreached?: boolean;
-  citizenId?: string;
-  assignedToId?: string;
-  search?: string;
-  page?: number;
-  pageSize?: number;
+  wardId?: string | undefined;
+  status?: ComplaintStatus | undefined;
+  category?: ComplaintCategory | undefined;
+  priority?: ComplaintPriority | undefined;
+  isSlaBreached?: boolean | undefined;
+  citizenId?: string | undefined;
+  assignedToId?: string | undefined;
+  search?: string | undefined;
+  page?: number | undefined;
+  pageSize?: number | undefined;
 }
 
 export interface DuplicateClusterMatch {
@@ -163,7 +163,7 @@ export interface NewComplaintCreated {
 export type LodgeComplaintResult = DuplicateClusterMatch | NewComplaintCreated;
 
 export const VALID_STATUS_TRANSITIONS: Record<ComplaintStatus, readonly ComplaintStatus[]> = {
-  SUBMITTED: ['UNDER_REVIEW', 'REJECTED'],
+  SUBMITTED: ['UNDER_REVIEW', 'ASSIGNED', 'REJECTED'],
   UNDER_REVIEW: ['ASSIGNED', 'REJECTED'],
   ASSIGNED: ['IN_PROGRESS', 'REJECTED'],
   IN_PROGRESS: ['RESOLVED'],
@@ -182,4 +182,3 @@ export const ROLE_TRANSITION_PERMISSIONS: Partial<Record<ComplaintStatus, readon
   REOPENED: [Role.CITIZEN, Role.WARD_OFFICER, Role.MUNICIPAL_ADMIN],
   CLOSED: [Role.WARD_OFFICER, Role.MUNICIPAL_ADMIN, Role.SUPER_ADMIN],
 };
-

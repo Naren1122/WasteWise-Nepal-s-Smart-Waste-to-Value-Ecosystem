@@ -30,8 +30,12 @@ export class ForbiddenError extends AppError {
 }
 
 export class ValidationError extends AppError {
-  constructor(details: unknown) {
-    super('Invalid request data', 422, 'VALIDATION_ERROR', details);
+  constructor(messageOrDetails?: string | unknown, details?: unknown) {
+    if (typeof messageOrDetails === 'string') {
+      super(messageOrDetails, 422, 'VALIDATION_ERROR', details);
+    } else {
+      super('Invalid request data', 422, 'VALIDATION_ERROR', messageOrDetails);
+    }
   }
 }
 

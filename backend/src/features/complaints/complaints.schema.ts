@@ -9,7 +9,10 @@ const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
 const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'] as const;
 
 export const AttachmentInputSchema = z.object({
-  fileUrl: z.string().url('Attachment fileUrl must be a valid URL'),
+  fileUrl: z.string().refine(
+    (val) => val.startsWith('http://') || val.startsWith('https://') || val.startsWith('data:image/'),
+    { message: 'Attachment fileUrl must be a valid HTTP(S) URL or image Data URI' }
+  ),
   fileKey: z.string().min(1, 'Attachment fileKey is required').max(255),
   mimeType: z.enum(ALLOWED_MIME_TYPES, {
     errorMap: () => ({ message: 'Attachment must be JPEG, PNG, or WebP' }),
@@ -59,15 +62,20 @@ export const TriageComplaintSchema = z
     notes: z.string().trim().max(1000).optional(),
     rejectionReason: z.string().trim().max(1000).optional(),
   })
+  .transform((data) => ({
+    ...data,
+    rejectionReason: data.rejectionReason ?? (data.status === 'REJECTED' ? data.notes : undefined),
+  }))
   .refine(
     (data) => {
       if (data.status === 'REJECTED') {
-        return !!data.rejectionReason && data.rejectionReason.length >= 10;
+        const reason = data.rejectionReason ?? data.notes;
+        return !!reason && reason.length >= 5;
       }
       return true;
     },
     {
-      message: 'Rejection reason of at least 10 characters is required when rejecting',
+      message: 'Rejection reason of at least 5 characters is required when rejecting',
       path: ['rejectionReason'],
     }
   );
