@@ -235,8 +235,8 @@ Open **`http://localhost:3000`** in your browser.
 
 | Role | Email / Identifier | Password | Access Scope |
 | :--- | :--- | :--- | :--- |
-| **Super Admin** | `superadmin@wastewise.gov.np` | `Admin@12345` | Global system config, new municipality onboarding, all audit logs |
-| **Municipal Admin** | `admin@kathmandu.gov.np` | `Admin@12345` | Kathmandu fleet, ward management, staff creation, billing |
+| **Super Admin** | `superadmin@wastewise.gov.np` | `Password123!` | Global system config, new municipality onboarding, all audit logs |
+| **Municipal Admin** | `admin@kathmandu.gov.np` | `Password123!` | Kathmandu fleet, ward management, staff creation, billing |
 | **Citizen** | *(Self-register on site)* | *(User chosen)* | View pickup schedules, pay waste bills, submit complaints |
 
 ---
